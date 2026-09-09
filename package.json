@@ -87,7 +87,8 @@
   },
   "peerDependencies": {
     "react": "*",
-    "react-native": "*"
+    "react-native": "*",
+    "react-native-svg": "*"
   },
   "workspaces": [
     "example"
@@ -166,5 +167,11 @@
       "release-it"
     ],
     "version": "0.63.1"
+  },
+  "dependencies": {
+    "@react-native-vector-icons/lucide": "^13.1.4",
+    "lucide-react-native": "^1.43.0",
+    "react-native-safe-area-context": "^5.9.1",
+    "react-native-svg": "15.15.4"
   }
 }
