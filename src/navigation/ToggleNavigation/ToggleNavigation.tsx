@@ -1,29 +1,35 @@
-import { useEffect, useState, type ComponentType } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
 
-export interface ToggleNavigationItem {
-  key: string;
-  label: string;
-  unselectedIcon: IconComponent;
-  selectedIcon: IconComponent;
-  onPress: () => void;
-}
+import { Pressable, Text, View } from 'react-native';
 
-export type IconComponent = ComponentType<{
-  size?: number;
-  color?: string;
-}>;
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
+
+import { ANIMATION_DURATION, COLLAPSED_WIDTH, ICON_SIZE } from './constants';
+import { styles } from './styles';
+import type {
+  IconComponent,
+  LabelWidths,
+  ToggleNavigationItem,
+  ToggleNavigationProps,
+} from './types';
+import { getBarWidth, getExpandedItemWidth } from './utils';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export default function ToggleNavigation({
   items,
   value,
   onChange,
-}: {
-  items: ToggleNavigationItem[];
-  value: number;
-  onChange: (value: number) => void;
-}) {
+}: ToggleNavigationProps) {
   const [activeIndex, setActiveIndex] = useState(value);
+  const [labelWidths, setLabelWidths] = useState<LabelWidths>({});
+
+  const measurementComplete = Object.keys(labelWidths).length === items.length;
 
   useEffect(() => {
     setActiveIndex(value);
@@ -32,93 +38,176 @@ export default function ToggleNavigation({
   const handlePress = (index: number) => {
     setActiveIndex(index);
     onChange(index);
+
+    items[index]?.onPress?.();
   };
 
   return (
-    <View style={styles.container}>
-      {items.map((item, index) => {
-        return (
-          <Pressable
-            key={item.key}
-            onPress={() => handlePress(index)}
-            style={
-              activeIndex === index
-                ? styles.selectedItem
-                : styles.unselectedItem
-            }
-          >
-            <View>
-              {activeIndex === index ? (
-                <View style={styles.selectedItemContent}>
-                  <item.selectedIcon
-                    size={20}
-                    color={styles.selectedItemText.color}
-                  />
-                  <Text style={styles.selectedItemText}>{item.label}</Text>
-                </View>
-              ) : (
-                <View style={styles.unselectedItemContent}>
-                  <item.unselectedIcon
-                    size={20}
-                    color={styles.unselectedItemText.color}
-                  />
-                </View>
-              )}
-            </View>
-          </Pressable>
-        );
-      })}
-    </View>
+    <>
+      {!measurementComplete && (
+        <View pointerEvents="none" style={styles.measureContainer}>
+          {items.map((item, index) => (
+            <Text
+              key={`measure-${item.key}`}
+              numberOfLines={1}
+              style={styles.labelText}
+              onLayout={(event) => {
+                const { width } = event.nativeEvent.layout;
+
+                setLabelWidths((prev) => {
+                  if (prev[index] === width) {
+                    return prev;
+                  }
+
+                  return {
+                    ...prev,
+                    [index]: width,
+                  };
+                });
+              }}
+            >
+              {item.label}
+            </Text>
+          ))}
+        </View>
+      )}
+
+      {measurementComplete && (
+        <NavigationBar
+          items={items}
+          activeIndex={activeIndex}
+          labelWidths={labelWidths}
+          onPress={handlePress}
+        />
+      )}
+    </>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    flexDirection: 'row',
-    bottom: 50,
-    height: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'center',
-    borderRadius: 100,
-    backgroundColor: '#1D1F1E',
-    gap: 8,
-    paddingHorizontal: 8,
-  },
-  selectedItem: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 4,
-  },
-  unselectedItem: {
-    justifyContent: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  selectedItemContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 100,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 4,
-  },
-  unselectedItemContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#2F3231',
-    borderRadius: 100,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    gap: 4,
-  },
-  selectedItemText: {
-    color: '#2B2E2D',
-  },
-  unselectedItemText: {
-    color: '#CDCFCE',
-  },
-});
+function NavigationBar({
+  items,
+  activeIndex,
+  labelWidths,
+  onPress,
+}: {
+  items: ToggleNavigationItem[];
+  activeIndex: number;
+  labelWidths: LabelWidths;
+  onPress: (index: number) => void;
+}) {
+  const activeLabelWidth = labelWidths[activeIndex] ?? 0;
+  const initialBarWidth = getBarWidth(items.length, activeLabelWidth);
+  const barWidth = useSharedValue(initialBarWidth);
+
+  useEffect(() => {
+    const targetWidth = getBarWidth(
+      items.length,
+      labelWidths[activeIndex] ?? 0
+    );
+
+    barWidth.value = withTiming(targetWidth, {
+      duration: ANIMATION_DURATION,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [activeIndex, items.length, labelWidths, barWidth]);
+
+  const barAnimatedStyle = useAnimatedStyle(() => ({
+    width: barWidth.value,
+  }));
+
+  return (
+    <Animated.View style={[styles.container, barAnimatedStyle]}>
+      {items.map((item, index) => {
+        const selected = activeIndex === index;
+
+        const Icon = selected ? item.selectedIcon : item.unselectedIcon;
+
+        return (
+          <AnimatedPressable key={item.key} onPress={() => onPress(index)}>
+            <NavigationItem
+              selected={selected}
+              label={item.label}
+              labelWidth={labelWidths[index] ?? 0}
+              Icon={Icon}
+            />
+          </AnimatedPressable>
+        );
+      })}
+    </Animated.View>
+  );
+}
+
+function NavigationItem({
+  selected,
+  label,
+  labelWidth,
+  Icon,
+}: {
+  selected: boolean;
+  label: string;
+  labelWidth: number;
+  Icon: IconComponent;
+}) {
+  const itemWidth = useSharedValue(
+    selected ? getExpandedItemWidth(labelWidth) : COLLAPSED_WIDTH
+  );
+
+  const visibleLabelWidth = useSharedValue(selected ? labelWidth : 0);
+
+  const labelOpacity = useSharedValue(selected ? 1 : 0);
+
+  useEffect(() => {
+    const targetItemWidth = selected
+      ? getExpandedItemWidth(labelWidth)
+      : COLLAPSED_WIDTH;
+
+    itemWidth.value = withTiming(targetItemWidth, {
+      duration: ANIMATION_DURATION,
+      easing: Easing.out(Easing.cubic),
+    });
+
+    visibleLabelWidth.value = withTiming(selected ? labelWidth : 0, {
+      duration: ANIMATION_DURATION,
+      easing: Easing.out(Easing.cubic),
+    });
+
+    labelOpacity.value = withTiming(selected ? 1 : 0, {
+      duration: ANIMATION_DURATION,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [selected, labelWidth, itemWidth, visibleLabelWidth, labelOpacity]);
+
+  const itemAnimatedStyle = useAnimatedStyle(() => ({
+    width: itemWidth.value,
+  }));
+
+  const labelAnimatedStyle = useAnimatedStyle(() => ({
+    width: visibleLabelWidth.value,
+    opacity: labelOpacity.value,
+  }));
+
+  return (
+    <Animated.View
+      style={[
+        styles.item,
+        selected ? styles.selectedItem : styles.unselectedItem,
+        itemAnimatedStyle,
+      ]}
+    >
+      <View style={styles.iconSlot}>
+        <Icon
+          size={ICON_SIZE}
+          color={
+            selected ? styles.selectedText.color : styles.unselectedText.color
+          }
+        />
+      </View>
+
+      <Animated.View style={[styles.labelContainer, labelAnimatedStyle]}>
+        <Text numberOfLines={1} style={styles.labelText}>
+          {label}
+        </Text>
+      </Animated.View>
+    </Animated.View>
+  );
+}

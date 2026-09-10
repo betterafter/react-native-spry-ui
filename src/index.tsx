@@ -1,1 +1,6 @@
-export { default as ToggleNavigation } from './navigation/ToggleNavigation/ToggleNavigation';
+export {
+  default as ToggleNavigation,
+  type IconComponent,
+  type ToggleNavigationItem,
+  type ToggleNavigationProps,
+} from './navigation/ToggleNavigation';

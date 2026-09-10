@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import ToggleNavigation from '../../../src/navigation/ToggleNavigation/ToggleNavigation';
+import { ToggleNavigation } from '../../../src/navigation/ToggleNavigation';
 import { LucideHome, LucideSettings } from 'lucide-react-native';
 
 export default function MainScreen() {
