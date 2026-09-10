@@ -13,13 +13,15 @@ export default function MainScreen() {
           {
             key: 'home',
             label: 'Home',
-            icon: LucideHome,
+            unselectedIcon: LucideHome,
+            selectedIcon: LucideHome,
             onPress: () => console.log('home'),
           },
           {
             key: 'settings',
             label: 'Settings',
-            icon: LucideSettings,
+            unselectedIcon: LucideSettings,
+            selectedIcon: LucideSettings,
             onPress: () => console.log('settings'),
           },
         ]}

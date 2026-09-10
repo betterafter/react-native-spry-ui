@@ -1,5 +1,5 @@
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import MainScreen from './screens/MainScreesn';
+import MainScreen from './screens/MainScreen';
 
 export default function App() {
   return (
