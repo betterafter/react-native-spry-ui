@@ -71,5 +71,6 @@ export const styles = StyleSheet.create({
     left: -10000,
     top: -10000,
     opacity: 0,
+    alignItems: 'flex-start',
   },
 });

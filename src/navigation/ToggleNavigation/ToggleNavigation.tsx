@@ -64,6 +64,8 @@ export default function ToggleNavigation({
                     [index]: width,
                   };
                 });
+
+                console.log('width', width);
               }}
             >
               {item.label}
