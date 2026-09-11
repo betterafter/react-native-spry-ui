@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
-    aspectRatio: 16 / 9,
+    aspectRatio: 16 / 8,
     borderRadius: 25,
   },
 
@@ -45,18 +45,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'black',
     paddingHorizontal: 4,
     paddingBottom: 2,
-    aspectRatio: 16 / 13,
+    aspectRatio: 16 / 12,
     borderRadius: 25,
   },
 
   cardInnerContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: '93%',
+    width: '95%',
     borderStyle: 'dashed',
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: '#241F20',
-    aspectRatio: 16 / 9 / 0.93,
+    aspectRatio: 16 / 8 / 0.95,
     borderRadius: 20,
   },
 
