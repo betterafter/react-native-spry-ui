@@ -174,5 +174,8 @@
       "release-it"
     ],
     "version": "0.63.1"
+  },
+  "dependencies": {
+    "phosphor-react-native": "^3.0.6"
   }
 }

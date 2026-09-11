@@ -9,10 +9,9 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { ANIMATION_DURATION, COLLAPSED_WIDTH, ICON_SIZE } from './constants';
+import { ANIMATION_DURATION, COLLAPSED_WIDTH } from './constants';
 import { styles } from './styles';
 import type {
-  IconComponent,
   LabelWidths,
   ToggleNavigationItem,
   ToggleNavigationProps,
@@ -148,7 +147,7 @@ function NavigationItem({
   selected: boolean;
   label: string;
   labelWidth: number;
-  Icon: IconComponent;
+  Icon: React.ReactNode;
 }) {
   const itemWidth = useSharedValue(
     selected ? getExpandedItemWidth(labelWidth) : COLLAPSED_WIDTH
@@ -196,14 +195,7 @@ function NavigationItem({
         itemAnimatedStyle,
       ]}
     >
-      <View style={styles.iconSlot}>
-        <Icon
-          size={ICON_SIZE}
-          color={
-            selected ? styles.selectedText.color : styles.unselectedText.color
-          }
-        />
-      </View>
+      <View style={styles.iconSlot}>{Icon}</View>
 
       <Animated.View style={[styles.labelContainer, labelAnimatedStyle]}>
         <Text numberOfLines={1} style={styles.labelText}>

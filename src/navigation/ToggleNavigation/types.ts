@@ -8,8 +8,8 @@ export type IconComponent = ComponentType<{
 export interface ToggleNavigationItem {
   key: string;
   label: string;
-  unselectedIcon: IconComponent;
-  selectedIcon: IconComponent;
+  unselectedIcon: React.ReactNode;
+  selectedIcon: React.ReactNode;
   onPress?: () => void;
 }
 

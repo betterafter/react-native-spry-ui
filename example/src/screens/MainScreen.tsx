@@ -1,7 +1,8 @@
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ToggleNavigation } from '../../../src/navigation/ToggleNavigation';
-import { LucideHome, LucideSettings } from 'lucide-react-native';
+import { HouseIcon } from 'phosphor-react-native/src/icons/House';
+import { GearIcon } from 'phosphor-react-native/src/icons/Gear';
 
 export default function MainScreen() {
   const insets = useSafeAreaInsets();
@@ -13,15 +14,19 @@ export default function MainScreen() {
           {
             key: 'home',
             label: 'Home',
-            unselectedIcon: LucideHome,
-            selectedIcon: LucideHome,
+            unselectedIcon: (
+              <HouseIcon size={20} color="white" weight="regular" />
+            ),
+            selectedIcon: <HouseIcon size={20} color="black" weight="fill" />,
             onPress: () => console.log('home'),
           },
           {
             key: 'settings',
             label: 'Settings',
-            unselectedIcon: LucideSettings,
-            selectedIcon: LucideSettings,
+            unselectedIcon: (
+              <GearIcon size={20} color="white" weight="regular" />
+            ),
+            selectedIcon: <GearIcon size={20} color="black" weight="fill" />,
             onPress: () => console.log('settings'),
           },
         ]}
