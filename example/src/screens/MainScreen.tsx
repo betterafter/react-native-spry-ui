@@ -1,61 +1,45 @@
-import { StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ToggleNavigation } from '../../../src/navigation/ToggleNavigation';
-import { HouseIcon } from 'phosphor-react-native/src/icons/House';
-import { MagnifyingGlassIcon } from 'phosphor-react-native/src/icons/MagnifyingGlass';
-import { UserIcon } from 'phosphor-react-native/src/icons/User';
-import { GearIcon } from 'phosphor-react-native/src/icons/Gear';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
-export default function MainScreen() {
-  const insets = useSafeAreaInsets();
+export type ScreenName =
+  'main' | 'cards' | 'bottom-navigation' | 'transactions' | 'settings';
+
+type MainScreenProps = {
+  onNavigate: (screen: ScreenName) => void;
+};
+
+export default function MainScreen({ onNavigate }: MainScreenProps) {
+  const categories: {
+    name: string;
+    screen: Exclude<ScreenName, 'main'>;
+    cardColor: string;
+  }[] = [
+    { name: 'cards', screen: 'cards', cardColor: '#F6C6C6' },
+    {
+      name: 'bottom navigation',
+      screen: 'bottom-navigation',
+      cardColor: '#F6D6A8',
+    },
+    { name: 'transactions', screen: 'transactions', cardColor: '#CFE3C4' },
+    { name: 'settings', screen: 'settings', cardColor: '#D8CCE8' },
+  ];
 
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
-      <ToggleNavigation
-        items={[
-          {
-            key: 'home',
-            label: 'Home',
-            unselectedIcon: (
-              <HouseIcon size={20} color="white" weight="regular" />
-            ),
-            selectedIcon: <HouseIcon size={20} color="black" weight="fill" />,
-            onPress: () => console.log('home'),
-          },
-          {
-            key: 'search',
-            label: 'Search',
-            unselectedIcon: (
-              <MagnifyingGlassIcon size={20} color="white" weight="regular" />
-            ),
-            selectedIcon: (
-              <MagnifyingGlassIcon size={20} color="black" weight="fill" />
-            ),
-            onPress: () => console.log('search'),
-          },
-          {
-            key: 'profile',
-            label: 'Profile',
-            unselectedIcon: (
-              <UserIcon size={20} color="white" weight="regular" />
-            ),
-            selectedIcon: <UserIcon size={20} color="black" weight="fill" />,
-            onPress: () => console.log('profile'),
-          },
-          {
-            key: 'settings',
-            label: 'Settings',
-            unselectedIcon: (
-              <GearIcon size={20} color="white" weight="regular" />
-            ),
-            selectedIcon: <GearIcon size={20} color="black" weight="fill" />,
-            onPress: () => console.log('settings'),
-          },
-        ]}
-        value={0}
-        onChange={() => {
-          console.log('change');
-        }}
+    <View style={styles.container}>
+      <FlatList
+        style={styles.list}
+        data={categories}
+        numColumns={2}
+        keyExtractor={(item) => item.name}
+        contentContainerStyle={styles.contentContainer}
+        columnWrapperStyle={styles.columnWrapper}
+        renderItem={({ item }) => (
+          <Pressable
+            onPress={() => onNavigate(item.screen)}
+            style={[styles.itemContainer, { backgroundColor: item.cardColor }]}
+          >
+            <Text style={styles.itemText}>{item.name}</Text>
+          </Pressable>
+        )}
       />
     </View>
   );
@@ -64,5 +48,36 @@ export default function MainScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+
+  list: {
+    flex: 1,
+    width: '100%',
+  },
+
+  contentContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
+
+  columnWrapper: {
+    justifyContent: 'center',
+    paddingHorizontal: 30,
+    paddingVertical: 5,
+    gap: 10,
+  },
+
+  itemContainer: {
+    padding: 20,
+    borderRadius: 10,
+    color: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '50%',
+  },
+
+  itemText: {
+    color: 'black',
+    fontSize: 16,
   },
 });
