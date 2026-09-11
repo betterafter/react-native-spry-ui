@@ -1,27 +1,25 @@
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useRouter, type Href } from 'expo-router';
 
-export type ScreenName =
-  'main' | 'cards' | 'bottom-navigation' | 'transactions' | 'settings';
-
-type MainScreenProps = {
-  onNavigate: (screen: ScreenName) => void;
+type Category = {
+  name: string;
+  href?: Href;
+  cardColor: string;
 };
 
-export default function MainScreen({ onNavigate }: MainScreenProps) {
-  const categories: {
-    name: string;
-    screen: Exclude<ScreenName, 'main'>;
-    cardColor: string;
-  }[] = [
-    { name: 'cards', screen: 'cards', cardColor: '#F6C6C6' },
-    {
-      name: 'bottom navigation',
-      screen: 'bottom-navigation',
-      cardColor: '#F6D6A8',
-    },
-    { name: 'transactions', screen: 'transactions', cardColor: '#CFE3C4' },
-    { name: 'settings', screen: 'settings', cardColor: '#D8CCE8' },
-  ];
+const categories: Category[] = [
+  { name: 'cards', cardColor: '#F6C6C6' },
+  {
+    name: 'bottom navigation',
+    href: '/bottom-navigation',
+    cardColor: '#F6D6A8',
+  },
+  { name: 'transactions', cardColor: '#CFE3C4' },
+  { name: 'settings', cardColor: '#D8CCE8' },
+];
+
+export default function HomeScreen() {
+  const router = useRouter();
 
   return (
     <View style={styles.container}>
@@ -34,8 +32,16 @@ export default function MainScreen({ onNavigate }: MainScreenProps) {
         columnWrapperStyle={styles.columnWrapper}
         renderItem={({ item }) => (
           <Pressable
-            onPress={() => onNavigate(item.screen)}
-            style={[styles.itemContainer, { backgroundColor: item.cardColor }]}
+            disabled={!item.href}
+            onPress={() => {
+              if (item.href) {
+                router.push(item.href);
+              }
+            }}
+            style={StyleSheet.flatten([
+              styles.itemContainer,
+              { backgroundColor: item.cardColor },
+            ])}
           >
             <Text style={styles.itemText}>{item.name}</Text>
           </Pressable>
@@ -70,7 +76,6 @@ const styles = StyleSheet.create({
   itemContainer: {
     padding: 20,
     borderRadius: 10,
-    color: 'white',
     justifyContent: 'center',
     alignItems: 'center',
     width: '50%',
