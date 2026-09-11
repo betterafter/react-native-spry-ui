@@ -8,7 +8,7 @@ type Category = {
 };
 
 const categories: Category[] = [
-  { name: 'cards', cardColor: '#F6C6C6' },
+  { name: 'cards', href: '/card', cardColor: '#F6C6C6' },
   {
     name: 'bottom navigation',
     href: '/bottom-navigation',

@@ -75,6 +75,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-ft-flow": "^3.0.11",
     "eslint-plugin-prettier": "^5.5.6",
+    "expo-linear-gradient": "~57.0.1",
     "jest": "^29.7.0",
     "lefthook": "^2.1.10",
     "prettier": "^3.9.6",
@@ -95,7 +96,8 @@
     "react-native-reanimated": "*",
     "react-native-safe-area-context": "*",
     "react-native-svg": "*",
-    "react-native-worklets": "*"
+    "react-native-worklets": "*",
+    "expo-linear-gradient": "*"
   },
   "workspaces": [
     "example"
