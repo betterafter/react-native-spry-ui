@@ -198,7 +198,7 @@ function NavigationItem({
       <View style={styles.iconSlot}>{Icon}</View>
 
       <Animated.View style={[styles.labelContainer, labelAnimatedStyle]}>
-        <Text numberOfLines={1} style={styles.labelText}>
+        <Text numberOfLines={1} style={styles.labelText} ellipsizeMode="clip">
           {label}
         </Text>
       </Animated.View>
