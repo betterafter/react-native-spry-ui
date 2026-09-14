@@ -1,5 +1,13 @@
-import { Animated, Easing, PanResponder, View } from 'react-native';
-import { useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Animated,
+  Easing,
+  Image,
+  PanResponder,
+  StyleSheet,
+  View,
+} from 'react-native';
+import { useEffect, useRef, useState } from 'react';
 
 import { styles } from './styles';
 
@@ -7,243 +15,415 @@ import type { CardStackAnimationProps, StackCard } from './types';
 
 import { CARD_GAP, DRAG_DISTANCE, SWIPE_THRESHOLD } from './constants';
 
-const FIRST_PLACEHOLDER = 'firstPlaceholder';
-const LAST_PLACEHOLDER = 'lastPlaceholder';
-const MAX_VISIBLE_CARDS = 3;
+const VISIBLE_CARD_COUNT = 3;
+const PREFETCH_RANGE = 5;
+const WINDOW_OFFSETS = [-1, 0, 1, 2, 3];
 
-/*
- * 카드 스택 애니메이션
- *
- * 카드를 스택으로 표시하고, 드래그로 카드를 이동할 수 있습니다.
- *
- * @param initialCards - 초기 카드 목록
- * @param cardGap - 카드 간격
- * @param dragDistance - 드래그 거리
- * @param swipeThreshold - 스와이프 임계값
- */
+type WindowCard = {
+  card: StackCard;
+  offset: number;
+};
+
+type CardContentProps = {
+  card: StackCard;
+  loaded: boolean;
+  onLoad: (card: StackCard) => void;
+};
+
+function Skeleton() {
+  const opacity = useRef(new Animated.Value(0.35)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, {
+          toValue: 0.75,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 0.35,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    animation.start();
+
+    return () => {
+      animation.stop();
+    };
+  }, [opacity]);
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        localStyles.skeleton,
+        {
+          opacity,
+        },
+      ]}
+    />
+  );
+}
+
+function CardContent({ card, loaded, onLoad }: CardContentProps) {
+  return (
+    <>
+      <Image
+        source={
+          typeof card.image === 'string' ? { uri: card.image } : card.image
+        }
+        resizeMode="cover"
+        style={localStyles.image}
+        onLoad={() => {
+          onLoad(card);
+        }}
+      />
+
+      {!loaded && <Skeleton />}
+    </>
+  );
+}
+
 export default function CardStackAnimation({
   initialCards = [],
   cardGap = CARD_GAP,
   dragDistance = DRAG_DISTANCE,
   swipeThreshold = SWIPE_THRESHOLD,
 }: CardStackAnimationProps) {
-  const [cards, setCards] = useState(initialCards);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
-  const cardsRef = useRef(cards);
-  cardsRef.current = cards;
+  const [loadedCardIds, setLoadedCardIds] = useState<Set<string>>(
+    () => new Set<string>()
+  );
 
-  const positionMap = useRef(
-    new Map<string, Animated.Value>([
-      [FIRST_PLACEHOLDER, new Animated.Value(-cardGap)],
-      ...initialCards.map((card, index): [string, Animated.Value] => [
-        card.id,
-        new Animated.Value(index * cardGap),
-      ]),
-      [
-        LAST_PLACEHOLDER,
-        new Animated.Value(
-          Math.min(initialCards.length, MAX_VISIBLE_CARDS) * cardGap
-        ),
-      ],
-    ])
-  ).current;
+  const [initialLoaded, setInitialLoaded] = useState(false);
 
-  const firstPlaceholderPosition = positionMap.get(FIRST_PLACEHOLDER)!;
+  const cardsRef = useRef<StackCard[]>(initialCards);
 
-  const lastPlaceholderPosition = positionMap.get(LAST_PLACEHOLDER)!;
+  const currentIndexRef = useRef(0);
 
-  const getVisibleCards = () => cardsRef.current.slice(0, MAX_VISIBLE_CARDS);
+  const loadedCardIdsRef = useRef<Set<string>>(new Set<string>());
 
-  const getPosition = (card: StackCard) => {
-    let value = positionMap.get(card.id);
+  const initialCardIdsRef = useRef<Set<string>>(new Set<string>());
 
-    if (!value) {
-      value = new Animated.Value(0);
-      positionMap.set(card.id, value);
+  const prefetchedUrisRef = useRef<Set<string>>(new Set<string>());
+
+  const prefetchingUrisRef = useRef<Set<string>>(new Set<string>());
+
+  const positionMap = useRef<Map<string, Animated.Value>>(new Map()).current;
+
+  cardsRef.current = initialCards;
+
+  const normalizeIndex = (index: number) => {
+    const length = cardsRef.current.length;
+
+    if (length === 0) {
+      return 0;
     }
+
+    return ((index % length) + length) % length;
+  };
+
+  const getCard = (index: number): StackCard | undefined => {
+    const cards = cardsRef.current;
+
+    if (cards.length === 0) {
+      return undefined;
+    }
+
+    return cards[normalizeIndex(index)];
+  };
+
+  const getWindowCards = (index: number): WindowCard[] => {
+    const result: WindowCard[] = [];
+
+    const usedIds = new Set<string>();
+
+    WINDOW_OFFSETS.forEach((offset) => {
+      const card = getCard(index + offset);
+
+      if (!card) {
+        return;
+      }
+
+      if (usedIds.has(card.id)) {
+        return;
+      }
+
+      usedIds.add(card.id);
+
+      result.push({
+        card,
+        offset,
+      });
+    });
+
+    return result;
+  };
+
+  const getPosition = (card: StackCard, initialValue: number) => {
+    const current = positionMap.get(card.id);
+
+    if (current) {
+      return current;
+    }
+
+    const value = new Animated.Value(initialValue);
+
+    positionMap.set(card.id, value);
 
     return value;
   };
 
-  const handleNextDrag = (progress: number) => {
-    const visibleCards = getVisibleCards();
+  const resetPositions = (index: number) => {
+    const windowCards = getWindowCards(index);
 
-    visibleCards.forEach((card, index) => {
-      const currentY = index * cardGap;
-      const targetY = (index + 1) * cardGap;
-      const nextY = currentY + (targetY - currentY) * progress;
-
-      getPosition(card).setValue(nextY);
+    windowCards.forEach(({ card, offset }) => {
+      getPosition(card, offset * cardGap).setValue(offset * cardGap);
     });
-
-    const ghostY = -cardGap + cardGap * progress;
-
-    firstPlaceholderPosition.setValue(ghostY);
   };
 
-  const handlePreviousDrag = (progress: number) => {
-    const visibleCards = getVisibleCards();
+  const prefetchAround = (index: number) => {
+    const uris = new Set<string>();
 
-    visibleCards.forEach((card, index) => {
-      const currentY = index * cardGap;
-      const targetY = (index - 1) * cardGap;
-      const nextY = currentY + (targetY - currentY) * progress;
+    for (let offset = -PREFETCH_RANGE; offset <= PREFETCH_RANGE; offset += 1) {
+      const card = getCard(index + offset);
 
-      getPosition(card).setValue(nextY);
+      if (!card) {
+        continue;
+      }
+
+      if (typeof card.image !== 'string') {
+        continue;
+      }
+
+      uris.add(card.image);
+    }
+
+    uris.forEach((uri) => {
+      if (prefetchedUrisRef.current.has(uri)) {
+        return;
+      }
+
+      if (prefetchingUrisRef.current.has(uri)) {
+        return;
+      }
+
+      prefetchingUrisRef.current.add(uri);
+
+      Image.prefetch(uri)
+        .then((success) => {
+          prefetchingUrisRef.current.delete(uri);
+
+          if (!success) {
+            return;
+          }
+
+          prefetchedUrisRef.current.add(uri);
+        })
+        .catch(() => {
+          prefetchingUrisRef.current.delete(uri);
+        });
     });
+  };
 
-    const startY = visibleCards.length * cardGap;
+  const checkInitialLoaded = (loadedIds: Set<string>) => {
+    const required = initialCardIdsRef.current;
 
-    const targetY = (visibleCards.length - 1) * cardGap;
+    if (required.size === 0) {
+      return;
+    }
 
-    const ghostY = startY + (targetY - startY) * progress;
+    const loaded = [...required].every((id) => loadedIds.has(id));
 
-    lastPlaceholderPosition.setValue(ghostY);
+    if (loaded) {
+      setInitialLoaded(true);
+    }
+  };
+
+  const handleImageLoad = (card: StackCard) => {
+    if (loadedCardIdsRef.current.has(card.id)) {
+      return;
+    }
+
+    const next = new Set(loadedCardIdsRef.current);
+
+    next.add(card.id);
+
+    loadedCardIdsRef.current = next;
+
+    setLoadedCardIds(next);
+
+    checkInitialLoaded(next);
+  };
+
+  useEffect(() => {
+    currentIndexRef.current = 0;
+
+    loadedCardIdsRef.current = new Set<string>();
+
+    prefetchedUrisRef.current = new Set<string>();
+
+    prefetchingUrisRef.current = new Set<string>();
+
+    positionMap.clear();
+
+    setCurrentIndex(0);
+
+    setLoadedCardIds(new Set<string>());
+
+    setInitialLoaded(false);
+
+    const initialWindow = getWindowCards(0);
+
+    initialCardIdsRef.current = new Set(
+      initialWindow.map(({ card }) => card.id)
+    );
+
+    if (initialCardIdsRef.current.size === 0) {
+      setInitialLoaded(true);
+    }
+
+    resetPositions(0);
+
+    prefetchAround(0);
+    // Helpers only read refs + cardGap; re-run when cards or gap change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialCards, cardGap]);
+
+  useEffect(() => {
+    prefetchAround(currentIndex);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIndex]);
+
+  const moveCards = (progress: number, direction: number) => {
+    const windowCards = getWindowCards(currentIndexRef.current);
+
+    windowCards.forEach(({ card, offset }) => {
+      const startY = offset * cardGap;
+
+      const targetY = (offset + direction) * cardGap;
+
+      const y = startY + (targetY - startY) * progress;
+
+      getPosition(card, startY).setValue(y);
+    });
   };
 
   const handleDrag = (dy: number) => {
-    const visibleCards = getVisibleCards();
-
-    if (visibleCards.length === 0) {
+    if (cardsRef.current.length === 0) {
       return;
     }
 
     const progress = Math.min(Math.abs(dy) / dragDistance, 1);
 
     if (dy > 0) {
-      handleNextDrag(progress);
+      moveCards(progress, 1);
+
       return;
     }
 
-    handlePreviousDrag(progress);
+    if (dy < 0) {
+      moveCards(progress, -1);
+    }
   };
 
   const returnToOriginalPosition = () => {
-    const visibleCards = getVisibleCards();
+    const windowCards = getWindowCards(currentIndexRef.current);
 
-    Animated.parallel([
-      ...visibleCards.map((card, index) =>
-        Animated.timing(getPosition(card), {
-          toValue: index * cardGap,
-          duration: 180,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        })
-      ),
-
-      Animated.timing(firstPlaceholderPosition, {
-        toValue: -cardGap,
+    const animations = windowCards.map(({ card, offset }) =>
+      Animated.timing(getPosition(card, offset * cardGap), {
+        toValue: offset * cardGap,
         duration: 180,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
-      }),
+      })
+    );
 
-      Animated.timing(lastPlaceholderPosition, {
-        toValue: visibleCards.length * cardGap,
-        duration: 180,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
-
-  const completeNext = () => {
-    const currentCards = cardsRef.current;
-    const visibleCards = currentCards.slice(0, MAX_VISIBLE_CARDS);
-
-    if (currentCards.length === 0) {
-      return;
-    }
-
-    Animated.parallel([
-      ...visibleCards.map((card, index) =>
-        Animated.timing(getPosition(card), {
-          toValue: (index + 1) * cardGap,
-          duration: 220,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        })
-      ),
-
-      Animated.timing(firstPlaceholderPosition, {
-        toValue: 0,
-        duration: 220,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      setCards((prevCards) => {
-        const lastCard = prevCards[prevCards.length - 1];
-
-        if (!lastCard) {
-          return prevCards;
-        }
-
-        const nextCards = [lastCard, ...prevCards.slice(0, -1)];
-
-        nextCards.slice(0, MAX_VISIBLE_CARDS).forEach((card, index) => {
-          getPosition(card).setValue(index * cardGap);
-        });
-
-        const visibleCount = Math.min(nextCards.length, MAX_VISIBLE_CARDS);
-
-        firstPlaceholderPosition.setValue(-cardGap);
-
-        lastPlaceholderPosition.setValue(visibleCount * cardGap);
-
-        return nextCards;
-      });
-    });
+    Animated.parallel(animations).start();
   };
 
   const completePrevious = () => {
-    const currentCards = cardsRef.current;
-    const visibleCards = currentCards.slice(0, MAX_VISIBLE_CARDS);
+    const current = currentIndexRef.current;
 
-    if (currentCards.length === 0) {
-      return;
-    }
+    const windowCards = getWindowCards(current);
 
-    Animated.parallel([
-      ...visibleCards.map((card, index) =>
-        Animated.timing(getPosition(card), {
-          toValue: (index - 1) * cardGap,
-          duration: 220,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        })
-      ),
-
-      Animated.timing(lastPlaceholderPosition, {
-        toValue: (visibleCards.length - 1) * cardGap,
+    const animations = windowCards.map(({ card, offset }) =>
+      Animated.timing(getPosition(card, offset * cardGap), {
+        toValue: (offset - 1) * cardGap,
         duration: 220,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
-      }),
-    ]).start(() => {
-      setCards((prevCards) => {
-        const firstCard = prevCards[0];
+      })
+    );
 
-        if (!firstCard) {
-          return prevCards;
-        }
+    Animated.parallel(animations).start(() => {
+      const nextIndex = normalizeIndex(current + 1);
 
-        const nextCards = [...prevCards.slice(1), firstCard];
+      currentIndexRef.current = nextIndex;
 
-        nextCards.slice(0, MAX_VISIBLE_CARDS).forEach((card, index) => {
-          getPosition(card).setValue(index * cardGap);
-        });
+      resetPositions(nextIndex);
 
-        const visibleCount = Math.min(nextCards.length, MAX_VISIBLE_CARDS);
-
-        firstPlaceholderPosition.setValue(-cardGap);
-
-        lastPlaceholderPosition.setValue(visibleCount * cardGap);
-
-        return nextCards;
-      });
+      setCurrentIndex(nextIndex);
     });
   };
+
+  const completeNext = () => {
+    const current = currentIndexRef.current;
+
+    const windowCards = getWindowCards(current);
+
+    const animations = windowCards.map(({ card, offset }) =>
+      Animated.timing(getPosition(card, offset * cardGap), {
+        toValue: (offset + 1) * cardGap,
+        duration: 220,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      })
+    );
+
+    Animated.parallel(animations).start(() => {
+      const nextIndex = normalizeIndex(current - 1);
+
+      currentIndexRef.current = nextIndex;
+
+      resetPositions(nextIndex);
+
+      setCurrentIndex(nextIndex);
+    });
+  };
+
+  const handleRelease = (dy: number) => {
+    if (dy > swipeThreshold) {
+      completeNext();
+
+      return;
+    }
+
+    if (dy < -swipeThreshold) {
+      completePrevious();
+
+      return;
+    }
+
+    returnToOriginalPosition();
+  };
+
+  const handleDragRef = useRef(handleDrag);
+
+  const handleReleaseRef = useRef(handleRelease);
+
+  const returnToOriginalRef = useRef(returnToOriginalPosition);
+
+  handleDragRef.current = handleDrag;
+
+  handleReleaseRef.current = handleRelease;
+
+  returnToOriginalRef.current = returnToOriginalPosition;
 
   const panResponder = useRef(
     PanResponder.create({
@@ -252,151 +432,89 @@ export default function CardStackAnimation({
         Math.abs(gestureState.dy) > Math.abs(gestureState.dx),
 
       onPanResponderMove: (_, gestureState) => {
-        handleDrag(gestureState.dy);
+        handleDragRef.current(gestureState.dy);
       },
 
       onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dy > swipeThreshold) {
-          completeNext();
-          return;
-        }
-
-        if (gestureState.dy < -swipeThreshold) {
-          completePrevious();
-          return;
-        }
-
-        returnToOriginalPosition();
+        handleReleaseRef.current(gestureState.dy);
       },
 
       onPanResponderTerminate: () => {
-        returnToOriginalPosition();
+        returnToOriginalRef.current();
       },
     })
   ).current;
 
-  const visibleCards = cards.slice(0, MAX_VISIBLE_CARDS);
+  const windowCards = getWindowCards(currentIndex);
 
-  const visibleCount = visibleCards.length;
-
-  const previousCard = cards[cards.length - 1];
-
-  const nextCard = cards.length > visibleCount ? cards[visibleCount] : cards[0];
+  if (initialCards.length === 0) {
+    return <View style={styles.container} />;
+  }
 
   return (
     <View style={styles.container} {...panResponder.panHandlers}>
-      {previousCard && (
-        <Animated.Image
-          source={
-            typeof previousCard.image === 'string'
-              ? {
-                  uri: previousCard.image,
-                }
-              : previousCard.image
-          }
-          style={[
-            styles.card,
-            {
-              zIndex: -(cards.length + 1) * cardGap,
-              transform: [
-                {
-                  translateY: firstPlaceholderPosition,
-                },
-              ],
-              opacity: firstPlaceholderPosition.interpolate({
-                inputRange: [-cardGap, 0],
-                outputRange: [0, 1],
-                extrapolate: 'clamp',
-              }),
-            },
-          ]}
-        />
-      )}
+      {windowCards.map(({ card, offset }) => {
+        const translateY = getPosition(card, offset * cardGap);
 
-      {visibleCards.map((card, index) => {
-        const translateY = getPosition(card);
+        const opacity = translateY.interpolate({
+          inputRange: [
+            -cardGap,
+            0,
+            (VISIBLE_CARD_COUNT - 1) * cardGap,
+            VISIBLE_CARD_COUNT * cardGap,
+          ],
+          outputRange: [0, 1, 1, 0],
+          extrapolate: 'clamp',
+        });
 
-        const isFirst = index === 0;
-
-        const isLast = index === visibleCards.length - 1;
-
-        let opacity: number | Animated.AnimatedInterpolation<number> = 1;
-
-        if (isLast) {
-          opacity = translateY.interpolate({
-            inputRange: [
-              (visibleCards.length - 1) * cardGap,
-              visibleCards.length * cardGap,
-            ],
-            outputRange: [1, 0],
-            extrapolate: 'clamp',
-          });
-        }
-
-        if (isFirst) {
-          opacity = translateY.interpolate({
-            inputRange: [-cardGap, 0],
-            outputRange: [0, 1],
-            extrapolate: 'clamp',
-          });
-        }
+        const loaded = loadedCardIds.has(card.id);
 
         return (
-          <Animated.Image
+          <Animated.View
             key={card.id}
-            source={
-              typeof card.image === 'string'
-                ? {
-                    uri: card.image,
-                  }
-                : card.image
-            }
             style={[
               styles.card,
               {
-                zIndex: index,
+                opacity: initialLoaded ? opacity : 0,
                 transform: [
                   {
                     translateY,
                   },
                 ],
-                opacity,
+                zIndex: offset + 2,
               },
             ]}
-          />
+          >
+            <CardContent card={card} loaded={loaded} onLoad={handleImageLoad} />
+          </Animated.View>
         );
       })}
 
-      {nextCard && (
-        <Animated.Image
-          source={
-            typeof nextCard.image === 'string'
-              ? {
-                  uri: nextCard.image,
-                }
-              : nextCard.image
-          }
-          style={[
-            styles.card,
-            {
-              zIndex: visibleCount + 1,
-              transform: [
-                {
-                  translateY: lastPlaceholderPosition,
-                },
-              ],
-              opacity: lastPlaceholderPosition.interpolate({
-                inputRange: [
-                  (visibleCount - 1) * cardGap,
-                  visibleCount * cardGap,
-                ],
-                outputRange: [1, 0],
-                extrapolate: 'clamp',
-              }),
-            },
-          ]}
-        />
+      {!initialLoaded && (
+        <View pointerEvents="auto" style={localStyles.loading}>
+          <ActivityIndicator size="large" />
+        </View>
       )}
     </View>
   );
 }
+
+const localStyles = StyleSheet.create({
+  image: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 10,
+  },
+
+  skeleton: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#E5E5E5',
+  },
+
+  loading: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+  },
+});

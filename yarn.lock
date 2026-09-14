@@ -6860,6 +6860,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"expo-image@npm:~57.0.5":
+  version: 57.0.5
+  resolution: "expo-image@npm:57.0.5"
+  dependencies:
+    sf-symbols-typescript: "npm:^2.2.0"
+  peerDependencies:
+    expo: "*"
+    react: "*"
+    react-native: "*"
+    react-native-web: "*"
+  peerDependenciesMeta:
+    react-native-web:
+      optional: true
+  checksum: 10c0/76c5c59353b2eecc3e97eabe5edfc42b532eb19680ef0065cedf818e29fb8faa271d4f076d0277be5de8a9f604900327c73358ebcb7d534a26d04c8c754982e1
+  languageName: node
+  linkType: hard
+
 "expo-keep-awake@npm:~57.0.1":
   version: 57.0.1
   resolution: "expo-keep-awake@npm:57.0.1"
@@ -11331,6 +11348,7 @@ __metadata:
     "@expo/metro-runtime": "npm:~57.0.15"
     expo: "npm:~57.0.21"
     expo-constants: "npm:~57.0.17"
+    expo-image: "npm:~57.0.5"
     expo-linear-gradient: "npm:~57.0.1"
     expo-linking: "npm:~57.0.9"
     expo-router: "npm:~57.0.20"
@@ -11372,6 +11390,7 @@ __metadata:
     eslint-config-prettier: "npm:^10.1.8"
     eslint-plugin-ft-flow: "npm:^3.0.11"
     eslint-plugin-prettier: "npm:^5.5.6"
+    expo-image: "npm:~57.0.5"
     expo-linear-gradient: "npm:~57.0.1"
     jest: "npm:^29.7.0"
     lefthook: "npm:^2.1.10"
@@ -11388,6 +11407,7 @@ __metadata:
     turbo: "npm:^2.10.8"
     typescript: "npm:^6.0.3"
   peerDependencies:
+    expo-image: "*"
     expo-linear-gradient: "*"
     react: "*"
     react-native: "*"
@@ -12055,7 +12075,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sf-symbols-typescript@npm:^2.0.0, sf-symbols-typescript@npm:^2.1.0":
+"sf-symbols-typescript@npm:^2.0.0, sf-symbols-typescript@npm:^2.1.0, sf-symbols-typescript@npm:^2.2.0":
   version: 2.2.0
   resolution: "sf-symbols-typescript@npm:2.2.0"
   checksum: 10c0/3f3bbf33aaad19e619d6f169899b39e9fe9c5fd21f0d6d511100e36887606ad349109ddc6ff82933f2b8cbf437dd7105c2ae6b0059b291dc47f143b30c2074cc
