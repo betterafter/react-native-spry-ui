@@ -21,12 +21,10 @@ export default function CardStackAnimation({
   const positionMap = useRef(
     new Map<string, Animated.Value>([
       [FIRST_PLACEHOLDER, new Animated.Value(-CARD_GAP)],
-
       ...initialCards.map((card, index): [string, Animated.Value] => [
         card.id,
         new Animated.Value(index * CARD_GAP),
       ]),
-
       [LAST_PLACEHOLDER, new Animated.Value(initialCards.length * CARD_GAP)],
     ])
   ).current;
@@ -72,7 +70,9 @@ export default function CardStackAnimation({
       getPosition(card).setValue(nextY);
     });
 
-    const ghostY = CARD_GAP - CARD_GAP * progress;
+    const startY = currentCards.length * CARD_GAP;
+    const targetY = (currentCards.length - 1) * CARD_GAP;
+    const ghostY = startY + (targetY - startY) * progress;
 
     lastPlaceholderPosition.setValue(ghostY);
   };
@@ -101,32 +101,23 @@ export default function CardStackAnimation({
       ...currentCards.map((card, index) =>
         Animated.timing(getPosition(card), {
           toValue: index * CARD_GAP,
-
           duration: 180,
-
           easing: Easing.out(Easing.cubic),
-
           useNativeDriver: true,
         })
       ),
 
       Animated.timing(firstPlaceholderPosition, {
         toValue: -CARD_GAP,
-
         duration: 180,
-
         easing: Easing.out(Easing.cubic),
-
         useNativeDriver: true,
       }),
 
       Animated.timing(lastPlaceholderPosition, {
-        toValue: CARD_GAP,
-
+        toValue: currentCards.length * CARD_GAP,
         duration: 180,
-
         easing: Easing.out(Easing.cubic),
-
         useNativeDriver: true,
       }),
     ]).start();
@@ -143,32 +134,16 @@ export default function CardStackAnimation({
       ...currentCards.map((card, index) =>
         Animated.timing(getPosition(card), {
           toValue: (index + 1) * CARD_GAP,
-
           duration: 220,
-
           easing: Easing.out(Easing.cubic),
-
           useNativeDriver: true,
         })
       ),
 
       Animated.timing(firstPlaceholderPosition, {
         toValue: 0,
-
         duration: 220,
-
         easing: Easing.out(Easing.cubic),
-
-        useNativeDriver: true,
-      }),
-
-      Animated.timing(lastPlaceholderPosition, {
-        toValue: CARD_GAP,
-
-        duration: 220,
-
-        easing: Easing.out(Easing.cubic),
-
         useNativeDriver: true,
       }),
     ]).start(() => {
@@ -186,7 +161,7 @@ export default function CardStackAnimation({
         });
 
         firstPlaceholderPosition.setValue(-CARD_GAP);
-        lastPlaceholderPosition.setValue(0);
+        lastPlaceholderPosition.setValue(nextCards.length * CARD_GAP);
 
         return nextCards;
       });
@@ -200,19 +175,23 @@ export default function CardStackAnimation({
       return;
     }
 
-    Animated.parallel(
-      currentCards.map((card, index) =>
+    Animated.parallel([
+      ...currentCards.map((card, index) =>
         Animated.timing(getPosition(card), {
           toValue: (index - 1) * CARD_GAP,
-
           duration: 220,
-
           easing: Easing.out(Easing.cubic),
-
           useNativeDriver: true,
         })
-      )
-    ).start(() => {
+      ),
+
+      Animated.timing(lastPlaceholderPosition, {
+        toValue: (currentCards.length - 1) * CARD_GAP,
+        duration: 220,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
       setCards((prevCards) => {
         const firstCard = prevCards[0];
 
@@ -226,6 +205,9 @@ export default function CardStackAnimation({
           getPosition(card).setValue(index * CARD_GAP);
         });
 
+        firstPlaceholderPosition.setValue(-CARD_GAP);
+        lastPlaceholderPosition.setValue(nextCards.length * CARD_GAP);
+
         return nextCards;
       });
     });
@@ -233,12 +215,9 @@ export default function CardStackAnimation({
 
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        return (
-          Math.abs(gestureState.dy) > 5 &&
-          Math.abs(gestureState.dy) > Math.abs(gestureState.dx)
-        );
-      },
+      onMoveShouldSetPanResponder: (_, gestureState) =>
+        Math.abs(gestureState.dy) > 5 &&
+        Math.abs(gestureState.dy) > Math.abs(gestureState.dx),
 
       onPanResponderMove: (_, gestureState) => {
         handleDrag(gestureState.dy);
@@ -281,7 +260,7 @@ export default function CardStackAnimation({
           style={[
             styles.card,
             {
-              zIndex: cards.length + 1,
+              zIndex: -(cards.length + 1),
 
               transform: [
                 {
@@ -301,19 +280,29 @@ export default function CardStackAnimation({
 
       {cards.map((card, index) => {
         const translateY = getPosition(card);
-
+        const isFirst = index === 0;
         const isLast = index === cards.length - 1;
 
-        const opacity = isLast
-          ? translateY.interpolate({
-              inputRange: [
-                (cards.length - 1) * CARD_GAP,
-                cards.length * CARD_GAP,
-              ],
-              outputRange: [1, 0],
-              extrapolate: 'clamp',
-            })
-          : 1;
+        let opacity: number | Animated.AnimatedInterpolation<number> = 1;
+
+        if (isLast) {
+          opacity = translateY.interpolate({
+            inputRange: [
+              (cards.length - 1) * CARD_GAP,
+              cards.length * CARD_GAP,
+            ],
+            outputRange: [1, 0],
+            extrapolate: 'clamp',
+          });
+        }
+
+        if (isFirst) {
+          opacity = translateY.interpolate({
+            inputRange: [-CARD_GAP, 0],
+            outputRange: [0, 1],
+            extrapolate: 'clamp',
+          });
+        }
 
         return (
           <Animated.Image
@@ -328,12 +317,13 @@ export default function CardStackAnimation({
             style={[
               styles.card,
               {
-                zIndex: index + CARD_GAP,
+                zIndex: index,
                 transform: [
                   {
                     translateY,
                   },
                 ],
+
                 opacity,
               },
             ]}
@@ -366,7 +356,7 @@ export default function CardStackAnimation({
                   (cards.length - 1) * CARD_GAP,
                   cards.length * CARD_GAP,
                 ],
-                outputRange: [0, 1],
+                outputRange: [1, 0],
                 extrapolate: 'clamp',
               }),
             },
