@@ -10,6 +10,9 @@ export type StackCard = {
 
 export type CardStackAnimationProps = {
   initialCards: StackCard[];
+  cardGap?: number;
+  dragDistance?: number;
+  swipeThreshold?: number;
 };
 
 export type StackCardItemProps = {
