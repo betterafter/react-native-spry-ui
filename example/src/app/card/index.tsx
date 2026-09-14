@@ -1,4 +1,5 @@
 import type { ImageSourcePropType } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import {
   CardStackAnimation,
   // CardWalletAnimation,
@@ -20,6 +21,18 @@ const DEMO_CARDS: { id: string; image: ImageSourcePropType }[] = [
 ];
 
 export default function CardScreen() {
-  return <CardStackAnimation initialCards={DEMO_CARDS} />;
-  // return <CardWalletAnimation cards={DEMO_CARDS} totalBalance="$6,539.00" />;
+  return (
+    <View style={styles.container}>
+      <CardStackAnimation initialCards={DEMO_CARDS} />
+    </View>
+  );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 20,
+  },
+});
