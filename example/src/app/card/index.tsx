@@ -1,6 +1,10 @@
-import { CardWalletAnimation, type WalletCard } from 'react-native-spry-ui';
+import type { ImageSourcePropType } from 'react-native';
+import {
+  CardStackAnimation,
+  // CardWalletAnimation,
+} from 'react-native-spry-ui';
 
-const DEMO_CARDS: WalletCard[] = [
+const DEMO_CARDS: { id: string; image: ImageSourcePropType }[] = [
   {
     id: '1',
     image: require('../../../assets/cards/card-mastercard.png'),
@@ -16,5 +20,6 @@ const DEMO_CARDS: WalletCard[] = [
 ];
 
 export default function CardScreen() {
-  return <CardWalletAnimation cards={DEMO_CARDS} totalBalance="$6,539.00" />;
+  return <CardStackAnimation initialCards={DEMO_CARDS} />;
+  // return <CardWalletAnimation cards={DEMO_CARDS} totalBalance="$6,539.00" />;
 }

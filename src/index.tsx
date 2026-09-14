@@ -10,3 +10,4 @@ export {
   type WalletCard,
   type WalletCardImage,
 } from './cards/CardWalletAnimation';
+export { default as CardStackAnimation } from './cards/CardStackAnimation';
