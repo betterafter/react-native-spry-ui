@@ -91,13 +91,13 @@
     "typescript": "^6.0.3"
   },
   "peerDependencies": {
+    "expo-linear-gradient": "*",
     "react": "*",
     "react-native": "*",
     "react-native-reanimated": "*",
     "react-native-safe-area-context": "*",
     "react-native-svg": "*",
-    "react-native-worklets": "*",
-    "expo-linear-gradient": "*"
+    "react-native-worklets": "*"
   },
   "workspaces": [
     "example"

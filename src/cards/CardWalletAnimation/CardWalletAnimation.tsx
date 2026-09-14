@@ -1,20 +1,43 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { DEFAULT_CARDS, DEFAULT_TOTAL_BALANCE } from './constants';
+import { styles } from './styles';
+import type { CardWalletAnimationProps } from './types';
+import WalletCardItem from './WalletCardItem';
 
-export default function CardWalletAnimation() {
+export default function CardWalletAnimation({
+  cards = DEFAULT_CARDS,
+  totalBalance = DEFAULT_TOTAL_BALANCE,
+}: CardWalletAnimationProps) {
   return (
     <View style={styles.screen}>
       <View style={styles.cardBackgroundContainer}>
+        <View style={styles.cardsStack} pointerEvents="box-none">
+          {cards.map((card, index) => (
+            <WalletCardItem
+              key={card.id}
+              card={card}
+              index={index}
+              total={cards.length}
+            />
+          ))}
+        </View>
+
         <Pressable style={styles.cardContainer}>
           <LinearGradient
             colors={['#373130', '#231516']}
             start={{ x: 0.5, y: 0 }}
             end={{ x: 0.5, y: 1 }}
-            style={styles.cardContainer}
+            style={styles.cardFace}
           >
             <View style={styles.cardInnerContainer}>
               <View style={styles.cardInnerOutCircle}>
                 <View style={styles.cardInnerInCircle} />
+              </View>
+
+              <View style={styles.balanceBlock}>
+                <Text style={styles.balanceLabel}>Total Balance</Text>
+                <Text style={styles.balanceValue}>{totalBalance}</Text>
               </View>
             </View>
           </LinearGradient>
@@ -23,60 +46,3 @@ export default function CardWalletAnimation() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  cardContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    aspectRatio: 16 / 8,
-    borderRadius: 25,
-  },
-
-  cardBackgroundContainer: {
-    justifyContent: 'flex-end',
-    width: '90%',
-    backgroundColor: 'black',
-    paddingHorizontal: 4,
-    paddingBottom: 2,
-    aspectRatio: 16 / 12,
-    borderRadius: 25,
-  },
-
-  cardInnerContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '95%',
-    borderStyle: 'dashed',
-    borderWidth: 1,
-    borderColor: '#241F20',
-    aspectRatio: 16 / 8 / 0.95,
-    borderRadius: 20,
-  },
-
-  cardInnerOutCircle: {
-    width: '30%',
-    aspectRatio: 1,
-    borderRadius: 100,
-    borderWidth: 5,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderColor: '#373130',
-  },
-
-  cardInnerInCircle: {
-    width: '80%',
-    aspectRatio: 1,
-    borderRadius: 100,
-    borderWidth: 5,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderColor: '#373130',
-  },
-});

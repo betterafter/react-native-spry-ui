@@ -11345,13 +11345,14 @@ __metadata:
     react-native-reanimated: "npm:4.5.1"
     react-native-safe-area-context: "npm:~5.7.0"
     react-native-screens: "npm:~4.26.0"
+    react-native-spry-ui: "workspace:*"
     react-native-svg: "npm:15.15.4"
     react-native-web: "npm:~0.21.0"
     react-native-worklets: "npm:0.10.1"
   languageName: unknown
   linkType: soft
 
-"react-native-spry-ui@workspace:.":
+"react-native-spry-ui@workspace:*, react-native-spry-ui@workspace:.":
   version: 0.0.0-use.local
   resolution: "react-native-spry-ui@workspace:."
   dependencies:
@@ -11387,6 +11388,7 @@ __metadata:
     turbo: "npm:^2.10.8"
     typescript: "npm:^6.0.3"
   peerDependencies:
+    expo-linear-gradient: "*"
     react: "*"
     react-native: "*"
     react-native-reanimated: "*"

@@ -1,4 +1,4 @@
-import CardWalletAnimation from '../../../../src/cards/CardWalletAnimation/CardWalletAnimation';
+import { CardWalletAnimation } from 'react-native-spry-ui';
 
 export default function CardScreen() {
   return <CardWalletAnimation />;
