@@ -475,7 +475,6 @@ export default function CardStackAnimation({
             style={[
               styles.card,
               {
-                opacity: initialLoaded ? opacity : 0,
                 transform: [
                   {
                     translateY,
@@ -483,6 +482,7 @@ export default function CardStackAnimation({
                 ],
                 zIndex: offset + 2,
               },
+              initialLoaded ? { opacity } : localStyles.hidden,
             ]}
           >
             <CardContent card={card} loaded={loaded} onLoad={handleImageLoad} />
@@ -507,14 +507,18 @@ const localStyles = StyleSheet.create({
   },
 
   skeleton: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: '#E5E5E5',
   },
 
   loading: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
+  },
+
+  hidden: {
+    opacity: 0,
   },
 });
