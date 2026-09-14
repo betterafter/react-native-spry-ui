@@ -1,118 +1,18 @@
-import {
-  ActivityIndicator,
-  Animated,
-  Easing,
-  Image,
-  PanResponder,
-  StyleSheet,
-  View,
-} from 'react-native';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, View } from 'react-native';
 
+import { CardContent } from './CardContent';
+import { useCardStackAnimation } from './hooks/useCardStackAnimation';
 import { styles } from './styles';
 
-import type { CardStackAnimationProps, StackCard } from './types';
+import type { CardStackAnimationProps } from './types';
 
-import { CARD_GAP, DRAG_DISTANCE, SWIPE_THRESHOLD } from './constants';
-
-const VISIBLE_CARD_COUNT = 3;
-const PREFETCH_RANGE = 5;
-const WINDOW_OFFSETS = [-1, 0, 1, 2, 3];
-/** Each stack level behind the front card is 2px narrower (1px inset per side). */
-const WIDTH_SHRINK_PER_LEVEL = 12;
-
-type WindowCard = {
-  card: StackCard;
-  offset: number;
-};
-
-type CardContentProps = {
-  card: StackCard;
-  loaded: boolean;
-  onLoad: (card: StackCard) => void;
-};
-
-function Skeleton() {
-  const opacity = useRef(new Animated.Value(0.35)).current;
-
-  useEffect(() => {
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacity, {
-          toValue: 0.75,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacity, {
-          toValue: 0.35,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    animation.start();
-
-    return () => {
-      animation.stop();
-    };
-  }, [opacity]);
-
-  return (
-    <Animated.View
-      pointerEvents="none"
-      style={[
-        localStyles.skeleton,
-        {
-          opacity,
-        },
-      ]}
-    />
-  );
-}
-
-function isLocalAsset(image: StackCard['image']) {
-  return typeof image === 'number';
-}
-
-function CardContent({ card, loaded, onLoad }: CardContentProps) {
-  const reportedRef = useRef(false);
-
-  const reportLoaded = () => {
-    if (reportedRef.current) {
-      return;
-    }
-
-    reportedRef.current = true;
-    onLoad(card);
-  };
-
-  useEffect(() => {
-    reportedRef.current = false;
-
-    // require() assets are sync; onLoad often skips after Fast Refresh.
-    if (isLocalAsset(card.image)) {
-      reportLoaded();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [card.id, card.image]);
-
-  return (
-    <>
-      <Image
-        source={
-          typeof card.image === 'string' ? { uri: card.image } : card.image
-        }
-        resizeMode="cover"
-        style={localStyles.image}
-        onLoad={reportLoaded}
-        onLoadEnd={reportLoaded}
-      />
-
-      {!loaded && <Skeleton />}
-    </>
-  );
-}
+import {
+  CARD_GAP,
+  DRAG_DISTANCE,
+  SWIPE_THRESHOLD,
+  VISIBLE_CARD_COUNT,
+  WIDTH_SHRINK_PER_LEVEL,
+} from './constants';
 
 export default function CardStackAnimation({
   initialCards = [],
@@ -120,400 +20,22 @@ export default function CardStackAnimation({
   dragDistance = DRAG_DISTANCE,
   swipeThreshold = SWIPE_THRESHOLD,
 }: CardStackAnimationProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-
-  const [loadedCardIds, setLoadedCardIds] = useState<Set<string>>(
-    () => new Set<string>()
-  );
-
-  const [initialLoaded, setInitialLoaded] = useState(false);
-
-  const [loadEpoch, setLoadEpoch] = useState(0);
-
-  const [stackWidth, setStackWidth] = useState(0);
-
-  const cardsRef = useRef<StackCard[]>(initialCards);
-
-  const currentIndexRef = useRef(0);
-
-  const loadedCardIdsRef = useRef<Set<string>>(new Set<string>());
-
-  const initialCardIdsRef = useRef<Set<string>>(new Set<string>());
-
-  const prefetchedUrisRef = useRef<Set<string>>(new Set<string>());
-
-  const prefetchingUrisRef = useRef<Set<string>>(new Set<string>());
-
-  const positionMap = useRef<Map<string, Animated.Value>>(new Map()).current;
-
-  cardsRef.current = initialCards;
-
-  const normalizeIndex = (index: number) => {
-    const length = cardsRef.current.length;
-
-    if (length === 0) {
-      return 0;
-    }
-
-    return ((index % length) + length) % length;
-  };
-
-  const getCard = (index: number): StackCard | undefined => {
-    const cards = cardsRef.current;
-
-    if (cards.length === 0) {
-      return undefined;
-    }
-
-    return cards[normalizeIndex(index)];
-  };
-
-  const getWindowCards = (index: number): WindowCard[] => {
-    const result: WindowCard[] = [];
-
-    const usedIds = new Set<string>();
-
-    WINDOW_OFFSETS.forEach((offset) => {
-      const card = getCard(index + offset);
-
-      if (!card) {
-        return;
-      }
-
-      if (usedIds.has(card.id)) {
-        return;
-      }
-
-      usedIds.add(card.id);
-
-      result.push({
-        card,
-        offset,
-      });
-    });
-
-    return result;
-  };
-
-  // Keep Animated values in sync when cardGap changes (before paint).
-  const prevCardGapRef = useRef(cardGap);
-
-  if (prevCardGapRef.current !== cardGap) {
-    prevCardGapRef.current = cardGap;
-
-    getWindowCards(currentIndexRef.current).forEach(({ card, offset }) => {
-      const value = positionMap.get(card.id);
-
-      if (value) {
-        value.setValue(offset * cardGap);
-      }
-    });
-  }
-
-  const getPosition = (card: StackCard, initialValue: number) => {
-    const current = positionMap.get(card.id);
-
-    if (current) {
-      return current;
-    }
-
-    const value = new Animated.Value(initialValue);
-
-    positionMap.set(card.id, value);
-
-    return value;
-  };
-
-  const resetPositions = (index: number, gap = cardGap) => {
-    const windowCards = getWindowCards(index);
-
-    windowCards.forEach(({ card, offset }) => {
-      getPosition(card, offset * gap).setValue(offset * gap);
-    });
-  };
-
-  const prefetchAround = (index: number) => {
-    const uris = new Set<string>();
-
-    for (let offset = -PREFETCH_RANGE; offset <= PREFETCH_RANGE; offset += 1) {
-      const card = getCard(index + offset);
-
-      if (!card) {
-        continue;
-      }
-
-      if (typeof card.image !== 'string') {
-        continue;
-      }
-
-      uris.add(card.image);
-    }
-
-    uris.forEach((uri) => {
-      if (prefetchedUrisRef.current.has(uri)) {
-        return;
-      }
-
-      if (prefetchingUrisRef.current.has(uri)) {
-        return;
-      }
-
-      prefetchingUrisRef.current.add(uri);
-
-      Image.prefetch(uri)
-        .then((success) => {
-          prefetchingUrisRef.current.delete(uri);
-
-          if (!success) {
-            return;
-          }
-
-          prefetchedUrisRef.current.add(uri);
-        })
-        .catch(() => {
-          prefetchingUrisRef.current.delete(uri);
-        });
-    });
-  };
-
-  const checkInitialLoaded = (loadedIds: Set<string>) => {
-    const required = initialCardIdsRef.current;
-
-    if (required.size === 0) {
-      return;
-    }
-
-    const loaded = [...required].every((id) => loadedIds.has(id));
-
-    if (loaded) {
-      setInitialLoaded(true);
-    }
-  };
-
-  const handleImageLoad = (card: StackCard) => {
-    if (loadedCardIdsRef.current.has(card.id)) {
-      return;
-    }
-
-    const next = new Set(loadedCardIdsRef.current);
-
-    next.add(card.id);
-
-    loadedCardIdsRef.current = next;
-
-    setLoadedCardIds(next);
-
-    checkInitialLoaded(next);
-  };
-
-  // Full reset only when the card list changes — not when cardGap tweaks.
-  useEffect(() => {
-    currentIndexRef.current = 0;
-
-    loadedCardIdsRef.current = new Set<string>();
-
-    prefetchedUrisRef.current = new Set<string>();
-
-    prefetchingUrisRef.current = new Set<string>();
-
-    positionMap.clear();
-
-    setCurrentIndex(0);
-
-    setLoadedCardIds(new Set<string>());
-
-    setInitialLoaded(false);
-
-    setLoadEpoch((epoch) => epoch + 1);
-
-    const initialWindow = getWindowCards(0);
-
-    initialCardIdsRef.current = new Set(
-      initialWindow.map(({ card }) => card.id)
-    );
-
-    const alreadyLoaded = new Set<string>();
-
-    initialWindow.forEach(({ card }) => {
-      if (isLocalAsset(card.image)) {
-        alreadyLoaded.add(card.id);
-      }
-    });
-
-    if (alreadyLoaded.size > 0) {
-      loadedCardIdsRef.current = alreadyLoaded;
-      setLoadedCardIds(alreadyLoaded);
-    }
-
-    if (
-      initialCardIdsRef.current.size === 0 ||
-      [...initialCardIdsRef.current].every((id) => alreadyLoaded.has(id))
-    ) {
-      setInitialLoaded(true);
-    }
-
-    resetPositions(0);
-    prefetchAround(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialCards]);
-
-  // Re-slot positions to the new gap before paint — keep index & values alive.
-  useLayoutEffect(() => {
-    resetPositions(currentIndexRef.current, cardGap);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cardGap]);
-
-  useEffect(() => {
-    prefetchAround(currentIndex);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentIndex]);
-
-  const moveCards = (progress: number, direction: number) => {
-    const windowCards = getWindowCards(currentIndexRef.current);
-
-    windowCards.forEach(({ card, offset }) => {
-      const startY = offset * cardGap;
-
-      const targetY = (offset + direction) * cardGap;
-
-      const y = startY + (targetY - startY) * progress;
-
-      getPosition(card, startY).setValue(y);
-    });
-  };
-
-  const handleDrag = (dy: number) => {
-    if (cardsRef.current.length === 0) {
-      return;
-    }
-
-    const progress = Math.min(Math.abs(dy) / dragDistance, 1);
-
-    if (dy > 0) {
-      moveCards(progress, 1);
-
-      return;
-    }
-
-    if (dy < 0) {
-      moveCards(progress, -1);
-    }
-  };
-
-  const returnToOriginalPosition = () => {
-    const windowCards = getWindowCards(currentIndexRef.current);
-
-    const animations = windowCards.map(({ card, offset }) =>
-      Animated.timing(getPosition(card, offset * cardGap), {
-        toValue: offset * cardGap,
-        duration: 180,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      })
-    );
-
-    Animated.parallel(animations).start();
-  };
-
-  const completePrevious = () => {
-    const current = currentIndexRef.current;
-
-    const windowCards = getWindowCards(current);
-
-    const animations = windowCards.map(({ card, offset }) =>
-      Animated.timing(getPosition(card, offset * cardGap), {
-        toValue: (offset - 1) * cardGap,
-        duration: 220,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      })
-    );
-
-    Animated.parallel(animations).start(() => {
-      const nextIndex = normalizeIndex(current + 1);
-
-      currentIndexRef.current = nextIndex;
-
-      resetPositions(nextIndex);
-
-      setCurrentIndex(nextIndex);
-    });
-  };
-
-  const completeNext = () => {
-    const current = currentIndexRef.current;
-
-    const windowCards = getWindowCards(current);
-
-    const animations = windowCards.map(({ card, offset }) =>
-      Animated.timing(getPosition(card, offset * cardGap), {
-        toValue: (offset + 1) * cardGap,
-        duration: 220,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      })
-    );
-
-    Animated.parallel(animations).start(() => {
-      const nextIndex = normalizeIndex(current - 1);
-
-      currentIndexRef.current = nextIndex;
-
-      resetPositions(nextIndex);
-
-      setCurrentIndex(nextIndex);
-    });
-  };
-
-  const handleRelease = (dy: number) => {
-    if (dy > swipeThreshold) {
-      completeNext();
-
-      return;
-    }
-
-    if (dy < -swipeThreshold) {
-      completePrevious();
-
-      return;
-    }
-
-    returnToOriginalPosition();
-  };
-
-  const handleDragRef = useRef(handleDrag);
-
-  const handleReleaseRef = useRef(handleRelease);
-
-  const returnToOriginalRef = useRef(returnToOriginalPosition);
-
-  handleDragRef.current = handleDrag;
-
-  handleReleaseRef.current = handleRelease;
-
-  returnToOriginalRef.current = returnToOriginalPosition;
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gestureState) =>
-        Math.abs(gestureState.dy) > 5 &&
-        Math.abs(gestureState.dy) > Math.abs(gestureState.dx),
-
-      onPanResponderMove: (_, gestureState) => {
-        handleDragRef.current(gestureState.dy);
-      },
-
-      onPanResponderRelease: (_, gestureState) => {
-        handleReleaseRef.current(gestureState.dy);
-      },
-
-      onPanResponderTerminate: () => {
-        returnToOriginalRef.current();
-      },
-    })
-  ).current;
-
-  const windowCards = getWindowCards(currentIndex);
+  const {
+    stackWidth,
+    setStackWidth,
+    windowCards,
+    loadedCardIds,
+    initialLoaded,
+    loadEpoch,
+    handleImageLoad,
+    getPosition,
+    panResponder,
+  } = useCardStackAnimation({
+    initialCards,
+    cardGap,
+    dragDistance,
+    swipeThreshold,
+  });
 
   if (initialCards.length === 0) {
     return <View style={styles.container} />;
@@ -564,17 +86,10 @@ export default function CardStackAnimation({
             style={[
               styles.card,
               {
-                transform: [
-                  {
-                    translateY,
-                  },
-                  {
-                    scaleX,
-                  },
-                ],
+                transform: [{ translateY }, { scaleX }],
                 zIndex: offset + 2,
               },
-              initialLoaded ? { opacity } : localStyles.hidden,
+              initialLoaded ? { opacity } : styles.hidden,
             ]}
           >
             <CardContent
@@ -588,34 +103,10 @@ export default function CardStackAnimation({
       })}
 
       {!initialLoaded && (
-        <View pointerEvents="auto" style={localStyles.loading}>
+        <View pointerEvents="auto" style={styles.loading}>
           <ActivityIndicator size="large" />
         </View>
       )}
     </View>
   );
 }
-
-const localStyles = StyleSheet.create({
-  image: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 15,
-  },
-
-  skeleton: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: '#E5E5E5',
-  },
-
-  loading: {
-    ...StyleSheet.absoluteFill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000,
-  },
-
-  hidden: {
-    opacity: 0,
-  },
-});

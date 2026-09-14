@@ -15,4 +15,15 @@ export const styles = StyleSheet.create({
     height: 200,
     borderRadius: 16,
   },
+
+  loading: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+  },
+
+  hidden: {
+    opacity: 0,
+  },
 });

@@ -20,3 +20,8 @@ export type StackCardItemProps = {
   index: number;
   total: number;
 };
+
+export type WindowCard = {
+  card: StackCard;
+  offset: number;
+};
