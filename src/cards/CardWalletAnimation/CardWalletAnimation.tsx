@@ -12,38 +12,41 @@ export default function CardWalletAnimation({
   return (
     <View style={styles.screen}>
       <View style={styles.walletScene}>
-        <View style={styles.cardBackgroundContainer}>
-          <View style={styles.cardsStack} pointerEvents="box-none">
-            {cards.map((card, index) => (
-              <WalletCardItem
-                key={card.id}
-                card={card}
-                index={index}
-                total={cards.length}
-              />
-            ))}
-          </View>
+        {/* back shell */}
+        <View style={styles.cardBackgroundContainer} />
 
-          <Pressable style={styles.cardContainer}>
-            <LinearGradient
-              colors={['#373130', '#231516']}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
-              style={styles.cardFace}
-            >
-              <View style={styles.cardInnerContainer}>
-                <View style={styles.cardInnerOutCircle}>
-                  <View style={styles.cardInnerInCircle} />
-                </View>
-
-                <View style={styles.balanceBlock}>
-                  <Text style={styles.balanceLabel}>Total Balance</Text>
-                  <Text style={styles.balanceValue}>{totalBalance}</Text>
-                </View>
-              </View>
-            </LinearGradient>
-          </Pressable>
+        {/* cards sit above the shell, below the pocket */}
+        <View style={styles.cardsStack} pointerEvents="box-none">
+          {cards.map((card, index) => (
+            <WalletCardItem
+              key={card.id}
+              card={card}
+              index={index}
+              total={cards.length}
+            />
+          ))}
         </View>
+
+        {/* front pocket */}
+        <Pressable style={styles.cardContainer}>
+          <LinearGradient
+            colors={['#373130', '#231516']}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={styles.cardFace}
+          >
+            <View style={styles.cardInnerContainer}>
+              <View style={styles.cardInnerOutCircle}>
+                <View style={styles.cardInnerInCircle} />
+              </View>
+
+              <View style={styles.balanceBlock}>
+                <Text style={styles.balanceLabel}>Total Balance</Text>
+                <Text style={styles.balanceValue}>{totalBalance}</Text>
+              </View>
+            </View>
+          </LinearGradient>
+        </Pressable>
       </View>
     </View>
   );

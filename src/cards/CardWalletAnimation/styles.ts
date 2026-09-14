@@ -10,35 +10,36 @@ export const styles = StyleSheet.create({
 
   walletScene: {
     width: '90%',
-    paddingTop: 96,
+    aspectRatio: 16 / 15,
+    position: 'relative',
   },
 
+  // z:0 — wallet back shell
   cardBackgroundContainer: {
-    position: 'relative',
-    justifyContent: 'flex-end',
-    width: '100%',
-    backgroundColor: 'black',
-    paddingHorizontal: 4,
-    paddingBottom: 2,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     aspectRatio: 16 / 12,
+    backgroundColor: 'black',
     borderRadius: 25,
-    overflow: 'visible',
     zIndex: 0,
+    elevation: 0,
     shadowColor: '#000',
     shadowOpacity: 0.45,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 12 },
-    elevation: 0,
   },
 
+  // z:1 — cards between shell and pocket
   cardsStack: {
     position: 'absolute',
-    left: 10,
-    right: 10,
-    top: -92,
-    height: 260,
+    left: 12,
+    right: 12,
+    top: 0,
+    height: '70%',
     zIndex: 1,
-    elevation: 1,
+    elevation: 4,
   },
 
   walletCard: {
@@ -48,7 +49,7 @@ export const styles = StyleSheet.create({
     aspectRatio: 16 / 9,
     borderRadius: 22,
     overflow: 'hidden',
-    backgroundColor: '#111',
+    backgroundColor: '#222',
     shadowColor: '#000',
     shadowOpacity: 0.35,
     shadowRadius: 10,
@@ -60,12 +61,16 @@ export const styles = StyleSheet.create({
     height: '100%',
   },
 
+  // z:2 — front pocket covers lower part of cards
   cardContainer: {
-    width: '100%',
+    position: 'absolute',
+    left: 4,
+    right: 4,
+    bottom: 2,
     aspectRatio: 16 / 8,
     borderRadius: 25,
     zIndex: 2,
-    elevation: 8,
+    elevation: 12,
     overflow: 'hidden',
   },
 

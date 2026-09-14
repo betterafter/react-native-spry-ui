@@ -1,6 +1,6 @@
-import { CardWalletAnimation } from 'react-native-spry-ui';
+import { CardWalletAnimation, type WalletCard } from 'react-native-spry-ui';
 
-const DEMO_CARDS = [
+const DEMO_CARDS: WalletCard[] = [
   {
     id: '1',
     image: require('../../../assets/cards/card-mastercard.png'),
