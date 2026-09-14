@@ -11,6 +11,16 @@ const FIRST_PLACEHOLDER = 'firstPlaceholder';
 const LAST_PLACEHOLDER = 'lastPlaceholder';
 const MAX_VISIBLE_CARDS = 3;
 
+/*
+ * 카드 스택 애니메이션
+ *
+ * 카드를 스택으로 표시하고, 드래그로 카드를 이동할 수 있습니다.
+ *
+ * @param initialCards - 초기 카드 목록
+ * @param cardGap - 카드 간격
+ * @param dragDistance - 드래그 거리
+ * @param swipeThreshold - 스와이프 임계값
+ */
 export default function CardStackAnimation({
   initialCards = [],
   cardGap = CARD_GAP,
