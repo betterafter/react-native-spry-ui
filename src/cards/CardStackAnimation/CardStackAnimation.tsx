@@ -69,7 +69,32 @@ function Skeleton() {
   );
 }
 
+function isLocalAsset(image: StackCard['image']) {
+  return typeof image === 'number';
+}
+
 function CardContent({ card, loaded, onLoad }: CardContentProps) {
+  const reportedRef = useRef(false);
+
+  const reportLoaded = () => {
+    if (reportedRef.current) {
+      return;
+    }
+
+    reportedRef.current = true;
+    onLoad(card);
+  };
+
+  useEffect(() => {
+    reportedRef.current = false;
+
+    // require() assets are sync; onLoad often skips after Fast Refresh.
+    if (isLocalAsset(card.image)) {
+      reportLoaded();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [card.id, card.image]);
+
   return (
     <>
       <Image
@@ -78,9 +103,8 @@ function CardContent({ card, loaded, onLoad }: CardContentProps) {
         }
         resizeMode="cover"
         style={localStyles.image}
-        onLoad={() => {
-          onLoad(card);
-        }}
+        onLoad={reportLoaded}
+        onLoadEnd={reportLoaded}
       />
 
       {!loaded && <Skeleton />}
@@ -101,6 +125,8 @@ export default function CardStackAnimation({
   );
 
   const [initialLoaded, setInitialLoaded] = useState(false);
+
+  const [loadEpoch, setLoadEpoch] = useState(0);
 
   const cardsRef = useRef<StackCard[]>(initialCards);
 
@@ -278,13 +304,33 @@ export default function CardStackAnimation({
 
     setInitialLoaded(false);
 
+    setLoadEpoch((epoch) => epoch + 1);
+
     const initialWindow = getWindowCards(0);
 
     initialCardIdsRef.current = new Set(
       initialWindow.map(({ card }) => card.id)
     );
 
-    if (initialCardIdsRef.current.size === 0) {
+    // Local require() images are ready immediately. Waiting for onLoad after
+    // Fast Refresh often never resolves because Image does not remount.
+    const alreadyLoaded = new Set<string>();
+
+    initialWindow.forEach(({ card }) => {
+      if (isLocalAsset(card.image)) {
+        alreadyLoaded.add(card.id);
+      }
+    });
+
+    if (alreadyLoaded.size > 0) {
+      loadedCardIdsRef.current = alreadyLoaded;
+      setLoadedCardIds(alreadyLoaded);
+    }
+
+    if (
+      initialCardIdsRef.current.size === 0 ||
+      [...initialCardIdsRef.current].every((id) => alreadyLoaded.has(id))
+    ) {
       setInitialLoaded(true);
     }
 
@@ -485,7 +531,12 @@ export default function CardStackAnimation({
               initialLoaded ? { opacity } : localStyles.hidden,
             ]}
           >
-            <CardContent card={card} loaded={loaded} onLoad={handleImageLoad} />
+            <CardContent
+              key={`${card.id}-${loadEpoch}`}
+              card={card}
+              loaded={loaded}
+              onLoad={handleImageLoad}
+            />
           </Animated.View>
         );
       })}
@@ -503,7 +554,7 @@ const localStyles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
-    borderRadius: 10,
+    borderRadius: 15,
   },
 
   skeleton: {
