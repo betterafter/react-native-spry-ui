@@ -7,7 +7,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { styles } from './styles';
 
@@ -195,6 +195,21 @@ export default function CardStackAnimation({
     return result;
   };
 
+  // Keep Animated values in sync when cardGap changes (before paint).
+  const prevCardGapRef = useRef(cardGap);
+
+  if (prevCardGapRef.current !== cardGap) {
+    prevCardGapRef.current = cardGap;
+
+    getWindowCards(currentIndexRef.current).forEach(({ card, offset }) => {
+      const value = positionMap.get(card.id);
+
+      if (value) {
+        value.setValue(offset * cardGap);
+      }
+    });
+  }
+
   const getPosition = (card: StackCard, initialValue: number) => {
     const current = positionMap.get(card.id);
 
@@ -209,11 +224,11 @@ export default function CardStackAnimation({
     return value;
   };
 
-  const resetPositions = (index: number) => {
+  const resetPositions = (index: number, gap = cardGap) => {
     const windowCards = getWindowCards(index);
 
     windowCards.forEach(({ card, offset }) => {
-      getPosition(card, offset * cardGap).setValue(offset * cardGap);
+      getPosition(card, offset * gap).setValue(offset * gap);
     });
   };
 
@@ -291,6 +306,7 @@ export default function CardStackAnimation({
     checkInitialLoaded(next);
   };
 
+  // Full reset only when the card list changes — not when cardGap tweaks.
   useEffect(() => {
     currentIndexRef.current = 0;
 
@@ -316,8 +332,6 @@ export default function CardStackAnimation({
       initialWindow.map(({ card }) => card.id)
     );
 
-    // Local require() images are ready immediately. Waiting for onLoad after
-    // Fast Refresh often never resolves because Image does not remount.
     const alreadyLoaded = new Set<string>();
 
     initialWindow.forEach(({ card }) => {
@@ -339,11 +353,15 @@ export default function CardStackAnimation({
     }
 
     resetPositions(0);
-
     prefetchAround(0);
-    // Helpers only read refs + cardGap; re-run when cards or gap change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialCards, cardGap]);
+  }, [initialCards]);
+
+  // Re-slot positions to the new gap before paint — keep index & values alive.
+  useLayoutEffect(() => {
+    resetPositions(currentIndexRef.current, cardGap);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cardGap]);
 
   useEffect(() => {
     prefetchAround(currentIndex);
