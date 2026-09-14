@@ -11,9 +11,8 @@ export const styles = StyleSheet.create({
 
   card: {
     position: 'absolute',
-
     width: '100%',
-    height: '200',
+    height: 200,
     borderRadius: 16,
   },
 });

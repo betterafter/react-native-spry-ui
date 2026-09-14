@@ -18,6 +18,8 @@ import { CARD_GAP, DRAG_DISTANCE, SWIPE_THRESHOLD } from './constants';
 const VISIBLE_CARD_COUNT = 3;
 const PREFETCH_RANGE = 5;
 const WINDOW_OFFSETS = [-1, 0, 1, 2, 3];
+/** Each stack level behind the front card is 2px narrower (1px inset per side). */
+const WIDTH_SHRINK_PER_LEVEL = 12;
 
 type WindowCard = {
   card: StackCard;
@@ -127,6 +129,8 @@ export default function CardStackAnimation({
   const [initialLoaded, setInitialLoaded] = useState(false);
 
   const [loadEpoch, setLoadEpoch] = useState(0);
+
+  const [stackWidth, setStackWidth] = useState(0);
 
   const cardsRef = useRef<StackCard[]>(initialCards);
 
@@ -498,7 +502,13 @@ export default function CardStackAnimation({
   }
 
   return (
-    <View style={styles.container} {...panResponder.panHandlers}>
+    <View
+      style={styles.container}
+      onLayout={(event) => {
+        setStackWidth(event.nativeEvent.layout.width);
+      }}
+      {...panResponder.panHandlers}
+    >
       {windowCards.map(({ card, offset }) => {
         const translateY = getPosition(card, offset * cardGap);
 
@@ -513,6 +523,21 @@ export default function CardStackAnimation({
           extrapolate: 'clamp',
         });
 
+        const frontY = (VISIBLE_CARD_COUNT - 1) * cardGap;
+        const scaleX =
+          stackWidth > 0
+            ? translateY.interpolate({
+                inputRange: [0, cardGap, frontY, VISIBLE_CARD_COUNT * cardGap],
+                outputRange: [
+                  (stackWidth - WIDTH_SHRINK_PER_LEVEL * 2) / stackWidth,
+                  (stackWidth - WIDTH_SHRINK_PER_LEVEL) / stackWidth,
+                  1,
+                  1,
+                ],
+                extrapolate: 'clamp',
+              })
+            : 1;
+
         const loaded = loadedCardIds.has(card.id);
 
         return (
@@ -524,6 +549,9 @@ export default function CardStackAnimation({
                 transform: [
                   {
                     translateY,
+                  },
+                  {
+                    scaleX,
                   },
                 ],
                 zIndex: offset + 2,

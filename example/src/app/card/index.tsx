@@ -33,7 +33,7 @@ export default function CardScreen() {
     <View style={styles.container}>
       <CardStackAnimation
         initialCards={DEMO_CARDS}
-        cardGap={80}
+        cardGap={50}
         dragDistance={300}
         swipeThreshold={100}
       />
