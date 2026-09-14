@@ -18,12 +18,25 @@ const DEMO_CARDS: { id: string; image: ImageSourcePropType }[] = [
     id: '3',
     image: require('../../../assets/cards/card-paypal.png'),
   },
+  {
+    id: '4',
+    image: require('../../../assets/cards/card-amex.png'),
+  },
+  {
+    id: '5',
+    image: require('../../../assets/cards/card-apple.png'),
+  },
 ];
 
 export default function CardScreen() {
   return (
     <View style={styles.container}>
-      <CardStackAnimation initialCards={DEMO_CARDS} />
+      <CardStackAnimation
+        initialCards={DEMO_CARDS}
+        cardGap={100}
+        dragDistance={300}
+        swipeThreshold={100}
+      />
     </View>
   );
 }

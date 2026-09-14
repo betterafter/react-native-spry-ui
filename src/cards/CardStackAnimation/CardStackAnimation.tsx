@@ -9,6 +9,7 @@ import { CARD_GAP, DRAG_DISTANCE, SWIPE_THRESHOLD } from './constants';
 
 const FIRST_PLACEHOLDER = 'firstPlaceholder';
 const LAST_PLACEHOLDER = 'lastPlaceholder';
+const MAX_VISIBLE_CARDS = 3;
 
 export default function CardStackAnimation({
   initialCards = [],
@@ -28,12 +29,20 @@ export default function CardStackAnimation({
         card.id,
         new Animated.Value(index * cardGap),
       ]),
-      [LAST_PLACEHOLDER, new Animated.Value(initialCards.length * cardGap)],
+      [
+        LAST_PLACEHOLDER,
+        new Animated.Value(
+          Math.min(initialCards.length, MAX_VISIBLE_CARDS) * cardGap
+        ),
+      ],
     ])
   ).current;
 
   const firstPlaceholderPosition = positionMap.get(FIRST_PLACEHOLDER)!;
+
   const lastPlaceholderPosition = positionMap.get(LAST_PLACEHOLDER)!;
+
+  const getVisibleCards = () => cardsRef.current.slice(0, MAX_VISIBLE_CARDS);
 
   const getPosition = (card: StackCard) => {
     let value = positionMap.get(card.id);
@@ -47,9 +56,9 @@ export default function CardStackAnimation({
   };
 
   const handleNextDrag = (progress: number) => {
-    const currentCards = cardsRef.current;
+    const visibleCards = getVisibleCards();
 
-    currentCards.forEach((card, index) => {
+    visibleCards.forEach((card, index) => {
       const currentY = index * cardGap;
       const targetY = (index + 1) * cardGap;
       const nextY = currentY + (targetY - currentY) * progress;
@@ -63,9 +72,9 @@ export default function CardStackAnimation({
   };
 
   const handlePreviousDrag = (progress: number) => {
-    const currentCards = cardsRef.current;
+    const visibleCards = getVisibleCards();
 
-    currentCards.forEach((card, index) => {
+    visibleCards.forEach((card, index) => {
       const currentY = index * cardGap;
       const targetY = (index - 1) * cardGap;
       const nextY = currentY + (targetY - currentY) * progress;
@@ -73,17 +82,19 @@ export default function CardStackAnimation({
       getPosition(card).setValue(nextY);
     });
 
-    const startY = currentCards.length * cardGap;
-    const targetY = (currentCards.length - 1) * cardGap;
+    const startY = visibleCards.length * cardGap;
+
+    const targetY = (visibleCards.length - 1) * cardGap;
+
     const ghostY = startY + (targetY - startY) * progress;
 
     lastPlaceholderPosition.setValue(ghostY);
   };
 
   const handleDrag = (dy: number) => {
-    const currentCards = cardsRef.current;
+    const visibleCards = getVisibleCards();
 
-    if (currentCards.length === 0) {
+    if (visibleCards.length === 0) {
       return;
     }
 
@@ -98,10 +109,10 @@ export default function CardStackAnimation({
   };
 
   const returnToOriginalPosition = () => {
-    const currentCards = cardsRef.current;
+    const visibleCards = getVisibleCards();
 
     Animated.parallel([
-      ...currentCards.map((card, index) =>
+      ...visibleCards.map((card, index) =>
         Animated.timing(getPosition(card), {
           toValue: index * cardGap,
           duration: 180,
@@ -118,7 +129,7 @@ export default function CardStackAnimation({
       }),
 
       Animated.timing(lastPlaceholderPosition, {
-        toValue: currentCards.length * cardGap,
+        toValue: visibleCards.length * cardGap,
         duration: 180,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
@@ -128,13 +139,14 @@ export default function CardStackAnimation({
 
   const completeNext = () => {
     const currentCards = cardsRef.current;
+    const visibleCards = currentCards.slice(0, MAX_VISIBLE_CARDS);
 
     if (currentCards.length === 0) {
       return;
     }
 
     Animated.parallel([
-      ...currentCards.map((card, index) =>
+      ...visibleCards.map((card, index) =>
         Animated.timing(getPosition(card), {
           toValue: (index + 1) * cardGap,
           duration: 220,
@@ -159,12 +171,15 @@ export default function CardStackAnimation({
 
         const nextCards = [lastCard, ...prevCards.slice(0, -1)];
 
-        nextCards.forEach((card, index) => {
+        nextCards.slice(0, MAX_VISIBLE_CARDS).forEach((card, index) => {
           getPosition(card).setValue(index * cardGap);
         });
 
+        const visibleCount = Math.min(nextCards.length, MAX_VISIBLE_CARDS);
+
         firstPlaceholderPosition.setValue(-cardGap);
-        lastPlaceholderPosition.setValue(nextCards.length * cardGap);
+
+        lastPlaceholderPosition.setValue(visibleCount * cardGap);
 
         return nextCards;
       });
@@ -173,13 +188,14 @@ export default function CardStackAnimation({
 
   const completePrevious = () => {
     const currentCards = cardsRef.current;
+    const visibleCards = currentCards.slice(0, MAX_VISIBLE_CARDS);
 
     if (currentCards.length === 0) {
       return;
     }
 
     Animated.parallel([
-      ...currentCards.map((card, index) =>
+      ...visibleCards.map((card, index) =>
         Animated.timing(getPosition(card), {
           toValue: (index - 1) * cardGap,
           duration: 220,
@@ -189,7 +205,7 @@ export default function CardStackAnimation({
       ),
 
       Animated.timing(lastPlaceholderPosition, {
-        toValue: (currentCards.length - 1) * cardGap,
+        toValue: (visibleCards.length - 1) * cardGap,
         duration: 220,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
@@ -204,12 +220,15 @@ export default function CardStackAnimation({
 
         const nextCards = [...prevCards.slice(1), firstCard];
 
-        nextCards.forEach((card, index) => {
+        nextCards.slice(0, MAX_VISIBLE_CARDS).forEach((card, index) => {
           getPosition(card).setValue(index * cardGap);
         });
 
+        const visibleCount = Math.min(nextCards.length, MAX_VISIBLE_CARDS);
+
         firstPlaceholderPosition.setValue(-cardGap);
-        lastPlaceholderPosition.setValue(nextCards.length * cardGap);
+
+        lastPlaceholderPosition.setValue(visibleCount * cardGap);
 
         return nextCards;
       });
@@ -246,31 +265,34 @@ export default function CardStackAnimation({
     })
   ).current;
 
-  const firstCard = cards[0];
-  const lastCard = cards[cards.length - 1];
+  const visibleCards = cards.slice(0, MAX_VISIBLE_CARDS);
+
+  const visibleCount = visibleCards.length;
+
+  const previousCard = cards[cards.length - 1];
+
+  const nextCard = cards.length > visibleCount ? cards[visibleCount] : cards[0];
 
   return (
     <View style={styles.container} {...panResponder.panHandlers}>
-      {lastCard && (
+      {previousCard && (
         <Animated.Image
           source={
-            typeof lastCard.image === 'string'
+            typeof previousCard.image === 'string'
               ? {
-                  uri: lastCard.image,
+                  uri: previousCard.image,
                 }
-              : lastCard.image
+              : previousCard.image
           }
           style={[
             styles.card,
             {
-              zIndex: -(cards.length + 1),
-
+              zIndex: -(cards.length + 1) * cardGap,
               transform: [
                 {
                   translateY: firstPlaceholderPosition,
                 },
               ],
-
               opacity: firstPlaceholderPosition.interpolate({
                 inputRange: [-cardGap, 0],
                 outputRange: [0, 1],
@@ -281,16 +303,21 @@ export default function CardStackAnimation({
         />
       )}
 
-      {cards.map((card, index) => {
+      {visibleCards.map((card, index) => {
         const translateY = getPosition(card);
+
         const isFirst = index === 0;
-        const isLast = index === cards.length - 1;
+
+        const isLast = index === visibleCards.length - 1;
 
         let opacity: number | Animated.AnimatedInterpolation<number> = 1;
 
         if (isLast) {
           opacity = translateY.interpolate({
-            inputRange: [(cards.length - 1) * cardGap, cards.length * cardGap],
+            inputRange: [
+              (visibleCards.length - 1) * cardGap,
+              visibleCards.length * cardGap,
+            ],
             outputRange: [1, 0],
             extrapolate: 'clamp',
           });
@@ -323,7 +350,6 @@ export default function CardStackAnimation({
                     translateY,
                   },
                 ],
-
                 opacity,
               },
             ]}
@@ -331,30 +357,28 @@ export default function CardStackAnimation({
         );
       })}
 
-      {firstCard && (
+      {nextCard && (
         <Animated.Image
           source={
-            typeof firstCard.image === 'string'
+            typeof nextCard.image === 'string'
               ? {
-                  uri: firstCard.image,
+                  uri: nextCard.image,
                 }
-              : firstCard.image
+              : nextCard.image
           }
           style={[
             styles.card,
             {
-              zIndex: (cards.length + 1) * cardGap,
-
+              zIndex: visibleCount + 1,
               transform: [
                 {
                   translateY: lastPlaceholderPosition,
                 },
               ],
-
               opacity: lastPlaceholderPosition.interpolate({
                 inputRange: [
-                  (cards.length - 1) * cardGap,
-                  cards.length * cardGap,
+                  (visibleCount - 1) * cardGap,
+                  visibleCount * cardGap,
                 ],
                 outputRange: [1, 0],
                 extrapolate: 'clamp',
