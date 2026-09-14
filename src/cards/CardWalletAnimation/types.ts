@@ -1,13 +1,15 @@
-export type WalletCardBrand = 'mastercard' | 'visa' | 'paypal';
+import type { ImageSourcePropType } from 'react-native';
+
+/** Local `require(...)` / number, remote `{ uri }`, or plain URL string. */
+export type WalletCardImage = ImageSourcePropType | string;
 
 export type WalletCard = {
   id: string;
-  brand: WalletCardBrand;
-  amount: string;
+  image: WalletCardImage;
 };
 
 export type CardWalletAnimationProps = {
-  cards?: WalletCard[];
+  cards: WalletCard[];
   totalBalance?: string;
 };
 

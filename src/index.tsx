@@ -8,5 +8,5 @@ export {
   default as CardWalletAnimation,
   type CardWalletAnimationProps,
   type WalletCard,
-  type WalletCardBrand,
+  type WalletCardImage,
 } from './cards/CardWalletAnimation';
