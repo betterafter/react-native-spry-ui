@@ -4,7 +4,14 @@ import type {
   NativeScrollEvent,
   NativeSyntheticEvent,
 } from 'react-native';
-import { Dimensions, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import {
   CardStackAnimation,
   CardVerticalAnimation,
@@ -35,6 +42,29 @@ const DEMO_CARDS: { id: string; image: ImageSourcePropType }[] = [
   },
 ];
 
+const VERTICAL_DEMO_CARD: { id: string; image: ImageSourcePropType }[] = [
+  {
+    id: '1',
+    image: require('../../../assets/cards/card-vertical-mastercard.png'),
+  },
+  {
+    id: '2',
+    image: require('../../../assets/cards/card-vertical-visa.png'),
+  },
+  {
+    id: '3',
+    image: require('../../../assets/cards/card-vertical-paypal.png'),
+  },
+  {
+    id: '4',
+    image: require('../../../assets/cards/card-vertical-amex.png'),
+  },
+  {
+    id: '5',
+    image: require('../../../assets/cards/card-vertical-apple.png'),
+  },
+];
+
 const PAGES = [
   {
     key: 'stack',
@@ -50,12 +80,11 @@ const PAGES = [
 ] as const;
 
 export default function CardScreen() {
+  const { width } = useWindowDimensions();
   const [pageIndex, setPageIndex] = useState(0);
 
   const handleScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const nextIndex = Math.round(
-      event.nativeEvent.contentOffset.x / PAGE_WIDTH
-    );
+    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / width);
     setPageIndex(nextIndex);
   };
 
@@ -89,7 +118,11 @@ export default function CardScreen() {
           style={[styles.page, { backgroundColor: PAGES[1].backgroundColor }]}
         >
           <Text style={[styles.title, styles.titleDark]}>{PAGES[1].title}</Text>
-          <CardVerticalAnimation />
+          <CardVerticalAnimation
+            cards={VERTICAL_DEMO_CARD}
+            width={250}
+            height={250 * 1.586}
+          />
         </View>
       </ScrollView>
 
