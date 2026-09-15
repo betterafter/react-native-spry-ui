@@ -73,6 +73,7 @@ export default function CardVerticalAnimation({
             <Animated.View
               key={card.id}
               style={[
+                styles.cardContainer,
                 translateX
                   ? {
                       transform: [{ translateX }],
