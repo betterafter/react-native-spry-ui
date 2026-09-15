@@ -52,6 +52,29 @@ export default function CardVerticalAnimation({
             extrapolate: 'clamp',
           });
 
+          const currentScale = currentTranslateX?.interpolate({
+            inputRange: [-CARD_GAP, 0],
+            outputRange: [1, 1],
+            extrapolate: 'clamp',
+          });
+          const nextScale = nextTranslateX?.interpolate({
+            inputRange: [0, CARD_GAP],
+            outputRange: [1, 0.9],
+            extrapolate: 'clamp',
+          });
+          const nextNextScale = nextTranslateX?.interpolate({
+            inputRange: [0, CARD_GAP],
+            outputRange: [0.9, 0.9],
+            extrapolate: 'clamp',
+          });
+
+          const scale =
+            index === currentIndex
+              ? currentScale
+              : index === currentIndex + 1
+                ? nextScale
+                : nextNextScale;
+
           const translateX =
             index === currentIndex
               ? currentTranslateX
@@ -76,7 +99,7 @@ export default function CardVerticalAnimation({
                 styles.cardContainer,
                 translateX
                   ? {
-                      transform: [{ translateX }],
+                      transform: [{ translateX }, { scale }],
                       zIndex: zIndex,
                       opacity: opacity,
                     }
@@ -91,8 +114,8 @@ export default function CardVerticalAnimation({
                   styles.cardContent,
 
                   {
-                    width: index === currentIndex ? width : width * 0.9,
-                    height: index === currentIndex ? height : height * 0.9,
+                    width: width,
+                    height: height,
                   },
                 ]}
                 resizeMode="contain"
