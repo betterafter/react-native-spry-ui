@@ -5,7 +5,10 @@ import type {
   NativeSyntheticEvent,
 } from 'react-native';
 import { Dimensions, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { CardStackAnimation, CardWalletAnimation } from 'react-native-spry-ui';
+import {
+  CardStackAnimation,
+  CardVerticalAnimation,
+} from 'react-native-spry-ui';
 
 const { width: PAGE_WIDTH } = Dimensions.get('window');
 
@@ -38,10 +41,11 @@ const PAGES = [
     title: 'Card Stack',
     backgroundColor: '#F5F5F5',
   },
+
   {
-    key: 'wallet',
-    title: 'Card Wallet',
-    backgroundColor: '#1A1040',
+    key: 'vertical',
+    title: 'Card Vertical',
+    backgroundColor: '#F5F5F5',
   },
 ] as const;
 
@@ -84,10 +88,8 @@ export default function CardScreen() {
         <View
           style={[styles.page, { backgroundColor: PAGES[1].backgroundColor }]}
         >
-          <Text style={[styles.title, styles.titleLight]}>
-            {PAGES[1].title}
-          </Text>
-          <CardWalletAnimation cards={DEMO_CARDS} totalBalance="$12,480.00" />
+          <Text style={[styles.title, styles.titleDark]}>{PAGES[1].title}</Text>
+          <CardVerticalAnimation />
         </View>
       </ScrollView>
 

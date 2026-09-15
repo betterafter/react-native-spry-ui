@@ -11,3 +11,4 @@ export {
   type WalletCardImage,
 } from './cards/CardWalletAnimation';
 export { default as CardStackAnimation } from './cards/CardStackAnimation';
+export { default as CardVerticalAnimation } from './cards/CardVerticalAnimation';
