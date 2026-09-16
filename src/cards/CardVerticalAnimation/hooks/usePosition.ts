@@ -28,7 +28,7 @@ export default function usePosition({ cards }: VerticalCardAnimationProps) {
     });
   };
 
-  const animatedSwipePrev = () => {
+  const animatedSwipeNext = () => {
     if (cards.length <= 1 || isAnimating.current) {
       return;
     }
@@ -62,7 +62,7 @@ export default function usePosition({ cards }: VerticalCardAnimationProps) {
     });
   };
 
-  const animatedSwipeNext = () => {};
+  const animatedSwipePrev = () => {};
 
   return {
     windowCards: getWindowCards(cards, currentIndex),

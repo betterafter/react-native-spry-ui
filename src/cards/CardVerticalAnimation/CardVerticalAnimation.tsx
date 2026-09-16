@@ -10,7 +10,7 @@ export default function CardVerticalAnimation({
   width,
   height,
 }: VerticalCardAnimationProps) {
-  const { windowCards, getPosition, animatedSwipePrev } = usePosition({
+  const { windowCards, getPosition, animatedSwipeNext } = usePosition({
     cards,
     width,
     height,
@@ -19,7 +19,7 @@ export default function CardVerticalAnimation({
   const panResponder = PanResponder.create({
     onMoveShouldSetPanResponder: () => true,
     onPanResponderRelease: () => {
-      animatedSwipePrev();
+      animatedSwipeNext();
     },
   });
 
