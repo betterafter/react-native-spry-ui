@@ -1,23 +1,10 @@
 import { useState } from 'react';
-import type {
-  ImageSourcePropType,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-} from 'react-native';
-import {
-  Dimensions,
-  ScrollView,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import type { ImageSourcePropType } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   CardStackAnimation,
   CardVerticalAnimation,
 } from 'react-native-spry-ui';
-
-const { width: PAGE_WIDTH } = Dimensions.get('window');
 
 const DEMO_CARDS: { id: string; image: ImageSourcePropType }[] = [
   {
@@ -65,45 +52,39 @@ const VERTICAL_DEMO_CARD: { id: string; image: ImageSourcePropType }[] = [
   },
 ];
 
-const PAGES = [
-  {
-    key: 'stack',
-    title: 'Card Stack',
-    backgroundColor: '#F5F5F5',
-  },
-
-  {
-    key: 'vertical',
-    title: 'Card Vertical',
-    backgroundColor: '#F5F5F5',
-  },
+const TABS = [
+  { key: 'stack', title: 'Card Stack' },
+  { key: 'vertical', title: 'Card Vertical' },
 ] as const;
 
 export default function CardScreen() {
-  const { width } = useWindowDimensions();
-  const [pageIndex, setPageIndex] = useState(0);
-
-  const handleScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / width);
-    setPageIndex(nextIndex);
-  };
+  const [tabIndex, setTabIndex] = useState(0);
 
   return (
     <View style={styles.container}>
-      <ScrollView
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={handleScrollEnd}
-        scrollEventThrottle={16}
-        bounces={false}
-        style={styles.pager}
-        contentContainerStyle={styles.pagerContent}
-      >
-        <View
-          style={[styles.page, { backgroundColor: PAGES[0].backgroundColor }]}
-        >
-          <Text style={[styles.title, styles.titleDark]}>{PAGES[0].title}</Text>
+      <View style={styles.tabBar}>
+        {TABS.map((tab, index) => {
+          const active = tabIndex === index;
+
+          return (
+            <Pressable
+              key={tab.key}
+              onPress={() => setTabIndex(index)}
+              style={styles.tab}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: active }}
+            >
+              <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
+                {tab.title}
+              </Text>
+              {active ? <View style={styles.tabIndicator} /> : null}
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <View style={styles.content}>
+        {tabIndex === 0 ? (
           <View style={styles.stackWrapper}>
             <CardStackAnimation
               initialCards={DEMO_CARDS}
@@ -112,36 +93,13 @@ export default function CardScreen() {
               swipeThreshold={100}
             />
           </View>
-        </View>
-
-        <View
-          style={[styles.page, { backgroundColor: PAGES[1].backgroundColor }]}
-        >
-          <Text style={[styles.title, styles.titleDark]}>{PAGES[1].title}</Text>
+        ) : (
           <CardVerticalAnimation
             cards={VERTICAL_DEMO_CARD}
             width={250}
             height={250 * 1.586}
           />
-        </View>
-      </ScrollView>
-
-      <View style={styles.dots} pointerEvents="none">
-        {PAGES.map((page, index) => {
-          const onDark = pageIndex === 1;
-          const active = pageIndex === index;
-
-          return (
-            <View
-              key={page.key}
-              style={[
-                styles.dot,
-                onDark && styles.dotOnDark,
-                active && (onDark ? styles.dotActiveOnDark : styles.dotActive),
-              ]}
-            />
-          );
-        })}
+        )}
       </View>
     </View>
   );
@@ -150,38 +108,48 @@ export default function CardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F5F5F5',
   },
 
-  pager: {
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(0,0,0,0.12)',
+  },
+
+  tab: {
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
   },
 
-  pagerContent: {
-    flexGrow: 1,
+  tabLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: 'rgba(0,0,0,0.45)',
   },
 
-  page: {
-    width: PAGE_WIDTH,
+  tabLabelActive: {
+    color: '#1A1A1A',
+    fontWeight: '600',
+  },
+
+  tabIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    left: 16,
+    right: 16,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: '#1A1A1A',
+  },
+
+  content: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-
-  title: {
-    position: 'absolute',
-    top: 24,
-    zIndex: 1,
-    fontSize: 18,
-    fontWeight: '600',
-    letterSpacing: 0.2,
-  },
-
-  titleDark: {
-    color: '#1A1A1A',
-  },
-
-  titleLight: {
-    color: '#FFFFFF',
   },
 
   stackWrapper: {
@@ -189,36 +157,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-
-  dots: {
-    position: 'absolute',
-    bottom: 28,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-  },
-
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(0,0,0,0.2)',
-  },
-
-  dotActive: {
-    width: 20,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-  },
-
-  dotOnDark: {
-    backgroundColor: 'rgba(255,255,255,0.3)',
-  },
-
-  dotActiveOnDark: {
-    width: 20,
-    backgroundColor: 'rgba(255,255,255,0.9)',
   },
 });
