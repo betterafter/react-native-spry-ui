@@ -1,5 +1,6 @@
 import { Animated, Image, PanResponder, View } from 'react-native';
-import type { VerticalCard, VerticalCardAnimationProps } from './types';
+
+import type { VerticalCardAnimationProps } from './types';
 import { styles } from './styles';
 import usePosition from './hooks/usePosition';
 import { CARD_GAP } from './constants';
@@ -9,113 +10,86 @@ export default function CardVerticalAnimation({
   width,
   height,
 }: VerticalCardAnimationProps) {
-  const {
-    currentPosition,
-    nextPosition,
-    nextNextPosition,
-    animatedSwipePrev,
-    animatedSwipeNext,
-    currentIndex,
-    // swipeNext,
-    // swipePrev,
-  } = usePosition({ cards, width, height });
+  const { position, animatedSwipePrev, animatedSwipeNext, currentIndex } =
+    usePosition({ cards, width, height });
 
   const panResponder = PanResponder.create({
     onMoveShouldSetPanResponder: () => true,
-    onPanResponderRelease: (event, state) => {
-      //   animatedSwipeNext();
+    onPanResponderRelease: () => {
       animatedSwipePrev();
     },
   });
 
+  if (cards.length === 0) {
+    return null;
+  }
+
+  if (cards.length === 1 && cards[0] !== undefined) {
+    const card = cards[0];
+
+    return (
+      <View style={styles.container}>
+        <View style={{ width, height }}>
+          <Image
+            style={[styles.cardContent, { width, height }]}
+            resizeMode="contain"
+            source={
+              typeof card.image === 'string' ? { uri: card.image } : card.image
+            }
+          />
+        </View>
+      </View>
+    );
+  }
+
+  const visibleCards = [
+    cards[currentIndex],
+    cards[(currentIndex + 1) % cards.length],
+    cards[(currentIndex + 2) % cards.length],
+  ];
+
   return (
     <View {...panResponder.panHandlers} style={styles.container}>
-      <View style={{ width: width, height: height }}>
-        {cards.map((card: VerticalCard, index) => {
-          const currentTranslateX = currentPosition;
-          const nextTranslateX = nextPosition;
-          const nextNextTranslateX = nextNextPosition;
+      <View style={{ width, height }}>
+        {visibleCards.map((card, slotIndex) => {
+          if (!card) {
+            return null;
+          }
 
-          const currentOpacity = currentTranslateX?.interpolate({
-            inputRange: [-CARD_GAP, 0],
-            outputRange: [0, 1],
-            extrapolate: 'clamp',
-          });
-          const nextOpacity = nextTranslateX?.interpolate({
-            inputRange: [0, CARD_GAP],
-            outputRange: [1, 1],
-            extrapolate: 'clamp',
-          });
-          const nextNextOpacity = nextNextTranslateX?.interpolate({
-            inputRange: [CARD_GAP, CARD_GAP * 2],
-            outputRange: [1, 0],
+          const translateX = Animated.add(position, slotIndex * CARD_GAP);
+
+          const opacity = translateX.interpolate({
+            inputRange: [-CARD_GAP, 0, CARD_GAP, CARD_GAP * 2],
+            outputRange: [0, 1, 1, 0],
             extrapolate: 'clamp',
           });
 
-          const currentScale = currentTranslateX?.interpolate({
-            inputRange: [-CARD_GAP, 0],
-            outputRange: [1, 1],
-            extrapolate: 'clamp',
-          });
-          const nextScale = nextTranslateX?.interpolate({
-            inputRange: [0, CARD_GAP],
-            outputRange: [1, 0.9],
-            extrapolate: 'clamp',
-          });
-          const nextNextScale = nextTranslateX?.interpolate({
-            inputRange: [0, CARD_GAP],
-            outputRange: [0.9, 0.9],
+          const scale = translateX.interpolate({
+            inputRange: [-CARD_GAP, 0, CARD_GAP, CARD_GAP * 2],
+            outputRange: [1, 1, 0.9, 0.8],
             extrapolate: 'clamp',
           });
 
-          const scale =
-            index === currentIndex
-              ? currentScale
-              : index === currentIndex + 1
-                ? nextScale
-                : nextNextScale;
-
-          const translateX =
-            index === currentIndex
-              ? currentTranslateX
-              : index === currentIndex + 1
-                ? nextTranslateX
-                : nextNextTranslateX;
-
-          const opacity =
-            index === currentIndex
-              ? currentOpacity
-              : index === currentIndex + 1
-                ? nextOpacity
-                : nextNextOpacity;
-
-          const zIndex =
-            index === currentIndex ? 3 : index === currentIndex + 1 ? 2 : 1;
+          const zIndex = 3 - slotIndex;
 
           return (
             <Animated.View
-              key={card.id}
+              key={`${card.id}-${slotIndex}`}
               style={[
                 styles.cardContainer,
-                translateX
-                  ? {
-                      transform: [{ translateX }, { scale }],
-                      zIndex: zIndex,
-                      opacity: opacity,
-                    }
-                  : {
-                      zIndex: zIndex,
-                      opacity: opacity,
-                    },
+                {
+                  transform: [{ translateX }, { scale }],
+                  opacity,
+                  zIndex,
+                },
               ]}
             >
               <Image
                 style={[
                   styles.cardContent,
-
                   {
-                    width: width,
-                    height: height,
+                    width,
+                    height,
                   },
                 ]}
                 resizeMode="contain"
