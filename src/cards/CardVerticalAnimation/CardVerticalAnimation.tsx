@@ -79,7 +79,10 @@ export default function CardVerticalAnimation({
                 {
                   transform: [{ translateX }, { scale }],
                   opacity,
-                  zIndex: VISIBLE_CARD_COUNT - offset,
+                  zIndex:
+                    offset === -1
+                      ? VISIBLE_CARD_COUNT + 1
+                      : VISIBLE_CARD_COUNT - offset,
                 },
               ]}
             >

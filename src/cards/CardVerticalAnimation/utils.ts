@@ -13,8 +13,8 @@ export function getWindowCards(
   const result: WindowCard[] = [];
   const used = new Set<string>();
 
-  for (let offset = 0; offset < VISIBLE_CARD_COUNT; offset += 1) {
-    const card = cards[(index + offset) % cards.length];
+  for (let offset = -1; offset < VISIBLE_CARD_COUNT; offset += 1) {
+    const card = cards[(index + offset + cards.length) % cards.length];
 
     if (!card || used.has(card.id)) {
       continue;

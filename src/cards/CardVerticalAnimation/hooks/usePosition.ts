@@ -70,21 +70,12 @@ export default function usePosition({ cards }: VerticalCardAnimationProps) {
     isAnimating.current = true;
 
     const index = currentIndexRef.current;
-
-    const prevIndex = (index - 1 + cards.length) % cards.length;
-
-    const prevWindow = getWindowCards(cards, prevIndex);
-
-    prevWindow.forEach(({ card, offset }) => {
-      getPosition(card.id, (offset - 1) * CARD_GAP).setValue(
-        (offset - 1) * CARD_GAP
-      );
-    });
+    const window = getWindowCards(cards, index);
 
     Animated.parallel(
-      prevWindow.map(({ card, offset }) =>
-        Animated.timing(getPosition(card.id, (offset - 1) * CARD_GAP), {
-          toValue: offset * CARD_GAP,
+      window.map(({ card, offset }) =>
+        Animated.timing(getPosition(card.id, offset * CARD_GAP), {
+          toValue: (offset + 1) * CARD_GAP,
           duration: ANIMATION_DURATION,
           easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
@@ -96,6 +87,7 @@ export default function usePosition({ cards }: VerticalCardAnimationProps) {
         return;
       }
 
+      const prevIndex = (index - 1 + cards.length) % cards.length;
       currentIndexRef.current = prevIndex;
 
       resetPositions(prevIndex);
