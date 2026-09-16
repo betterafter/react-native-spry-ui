@@ -62,7 +62,49 @@ export default function usePosition({ cards }: VerticalCardAnimationProps) {
     });
   };
 
-  const animatedSwipePrev = () => {};
+  const animatedSwipePrev = () => {
+    if (cards.length <= 1 || isAnimating.current) {
+      return;
+    }
+
+    isAnimating.current = true;
+
+    const index = currentIndexRef.current;
+
+    const prevIndex = (index - 1 + cards.length) % cards.length;
+
+    const prevWindow = getWindowCards(cards, prevIndex);
+
+    prevWindow.forEach(({ card, offset }) => {
+      getPosition(card.id, (offset - 1) * CARD_GAP).setValue(
+        (offset - 1) * CARD_GAP
+      );
+    });
+
+    Animated.parallel(
+      prevWindow.map(({ card, offset }) =>
+        Animated.timing(getPosition(card.id, (offset - 1) * CARD_GAP), {
+          toValue: offset * CARD_GAP,
+          duration: ANIMATION_DURATION,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        })
+      )
+    ).start(({ finished }) => {
+      if (!finished) {
+        isAnimating.current = false;
+        return;
+      }
+
+      currentIndexRef.current = prevIndex;
+
+      resetPositions(prevIndex);
+
+      setCurrentIndex(prevIndex);
+
+      isAnimating.current = false;
+    });
+  };
 
   return {
     windowCards: getWindowCards(cards, currentIndex),
