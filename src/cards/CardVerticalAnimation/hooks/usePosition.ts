@@ -2,13 +2,31 @@ import { useRef, useState } from 'react';
 import { Animated, Easing } from 'react-native';
 
 import type { VerticalCardAnimationProps } from '../types';
-import { CARD_GAP } from '../constants';
+import { ANIMATION_DURATION, CARD_GAP } from '../constants';
+import { getWindowCards } from '../utils';
 
 export default function usePosition({ cards }: VerticalCardAnimationProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-
-  const position = useRef(new Animated.Value(0)).current;
+  const currentIndexRef = useRef(0);
   const isAnimating = useRef(false);
+  const positions = useRef(new Map<string, Animated.Value>()).current;
+
+  const getPosition = (cardId: string, initial: number) => {
+    let value = positions.get(cardId);
+
+    if (!value) {
+      value = new Animated.Value(initial);
+      positions.set(cardId, value);
+    }
+
+    return value;
+  };
+
+  const resetPositions = (index: number) => {
+    getWindowCards(cards, index).forEach(({ card, offset }) => {
+      getPosition(card.id, offset * CARD_GAP).setValue(offset * CARD_GAP);
+    });
+  };
 
   const animatedSwipePrev = () => {
     if (cards.length <= 1 || isAnimating.current) {
@@ -17,30 +35,38 @@ export default function usePosition({ cards }: VerticalCardAnimationProps) {
 
     isAnimating.current = true;
 
-    Animated.timing(position, {
-      toValue: -CARD_GAP,
-      duration: 200,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start(({ finished }) => {
+    const index = currentIndexRef.current;
+    const window = getWindowCards(cards, index);
+
+    Animated.parallel(
+      window.map(({ card, offset }) =>
+        Animated.timing(getPosition(card.id, offset * CARD_GAP), {
+          toValue: (offset - 1) * CARD_GAP,
+          duration: ANIMATION_DURATION,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        })
+      )
+    ).start(({ finished }) => {
       if (!finished) {
         isAnimating.current = false;
         return;
       }
 
-      setCurrentIndex((prev) => (prev + 1) % cards.length);
+      const nextIndex = (index + 1) % cards.length;
 
-      requestAnimationFrame(() => {
-        position.setValue(0);
-        isAnimating.current = false;
-      });
+      currentIndexRef.current = nextIndex;
+      resetPositions(nextIndex);
+      setCurrentIndex(nextIndex);
+      isAnimating.current = false;
     });
   };
 
   const animatedSwipeNext = () => {};
 
   return {
-    position,
+    windowCards: getWindowCards(cards, currentIndex),
+    getPosition,
     animatedSwipePrev,
     animatedSwipeNext,
     currentIndex,

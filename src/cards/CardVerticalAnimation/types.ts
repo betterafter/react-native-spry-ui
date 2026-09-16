@@ -12,3 +12,8 @@ export type VerticalCardAnimationProps = {
   width: number;
   height: number;
 };
+
+export type WindowCard = {
+  card: VerticalCard;
+  offset: number;
+};

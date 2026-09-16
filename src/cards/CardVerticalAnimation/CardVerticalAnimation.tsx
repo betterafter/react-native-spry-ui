@@ -3,15 +3,18 @@ import { Animated, Image, PanResponder, View } from 'react-native';
 import type { VerticalCardAnimationProps } from './types';
 import { styles } from './styles';
 import usePosition from './hooks/usePosition';
-import { CARD_GAP } from './constants';
+import { CARD_GAP, VISIBLE_CARD_COUNT } from './constants';
 
 export default function CardVerticalAnimation({
   cards,
   width,
   height,
 }: VerticalCardAnimationProps) {
-  const { position, animatedSwipePrev, animatedSwipeNext, currentIndex } =
-    usePosition({ cards, width, height });
+  const { windowCards, getPosition, animatedSwipePrev } = usePosition({
+    cards,
+    width,
+    height,
+  });
 
   const panResponder = PanResponder.create({
     onMoveShouldSetPanResponder: () => true,
@@ -33,6 +36,7 @@ export default function CardVerticalAnimation({
           <Image
             style={[styles.cardContent, { width, height }]}
             resizeMode="contain"
+            fadeDuration={0}
             source={
               typeof card.image === 'string' ? { uri: card.image } : card.image
             }
@@ -42,21 +46,11 @@ export default function CardVerticalAnimation({
     );
   }
 
-  const visibleCards = [
-    cards[currentIndex],
-    cards[(currentIndex + 1) % cards.length],
-    cards[(currentIndex + 2) % cards.length],
-  ];
-
   return (
     <View {...panResponder.panHandlers} style={styles.container}>
       <View style={{ width, height }}>
-        {visibleCards.map((card, slotIndex) => {
-          if (!card) {
-            return null;
-          }
-
-          const translateX = Animated.add(position, slotIndex * CARD_GAP);
+        {windowCards.map(({ card, offset }) => {
+          const translateX = getPosition(card.id, offset * CARD_GAP);
 
           const opacity = translateX.interpolate({
             inputRange: [-CARD_GAP, 0, CARD_GAP, CARD_GAP * 2],
@@ -70,29 +64,22 @@ export default function CardVerticalAnimation({
             extrapolate: 'clamp',
           });
 
-          const zIndex = 3 - slotIndex;
-
           return (
             <Animated.View
-              key={`${card.id}-${slotIndex}`}
+              key={card.id}
               style={[
                 styles.cardContainer,
                 {
                   transform: [{ translateX }, { scale }],
                   opacity,
-                  zIndex,
+                  zIndex: VISIBLE_CARD_COUNT - offset,
                 },
               ]}
             >
               <Image
-                style={[
-                  styles.cardContent,
-                  {
-                    width,
-                    height,
-                  },
-                ]}
+                style={[styles.cardContent, { width, height }]}
                 resizeMode="contain"
+                fadeDuration={0}
                 source={
                   typeof card.image === 'string'
                     ? { uri: card.image }
