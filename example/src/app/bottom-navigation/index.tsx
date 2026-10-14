@@ -1,10 +1,12 @@
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ToggleNavigation } from '../../../../src/navigation/ToggleNavigation';
-import { HouseIcon } from 'phosphor-react-native/src/icons/House';
-import { MagnifyingGlassIcon } from 'phosphor-react-native/src/icons/MagnifyingGlass';
-import { UserIcon } from 'phosphor-react-native/src/icons/User';
-import { GearIcon } from 'phosphor-react-native/src/icons/Gear';
+import {
+  GearIcon,
+  HouseIcon,
+  MagnifyingGlassIcon,
+  UserIcon,
+} from 'phosphor-react-native';
 
 export default function BottomNavigationScreen() {
   const insets = useSafeAreaInsets();

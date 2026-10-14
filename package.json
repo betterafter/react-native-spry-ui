@@ -10,11 +10,18 @@
       "types": "./lib/typescript/src/index.d.ts",
       "default": "./lib/module/index.js"
     },
+    "./toggle-navigation": {
+      "react-native-spry-ui-source": "./src/navigation/ToggleNavigation/index.ts",
+      "types": "./lib/typescript/src/navigation/ToggleNavigation/index.d.ts",
+      "default": "./lib/module/navigation/ToggleNavigation/index.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
     "src",
     "lib",
+    "toggle-navigation.js",
+    "toggle-navigation.d.ts",
     "android",
     "ios",
     "cpp",
