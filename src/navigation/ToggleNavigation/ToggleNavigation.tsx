@@ -17,6 +17,10 @@ const timingConfig = {
   useNativeDriver: false,
 } as const;
 
+const DEFAULT_BACKGROUND_COLOR = '#1D1F1E';
+const DEFAULT_ACTIVE_COLOR = '#FFFFFF';
+const DEFAULT_INACTIVE_COLOR = '#2F3231';
+
 function animateTo(value: Animated.Value, toValue: number) {
   Animated.timing(value, {
     ...timingConfig,
@@ -28,6 +32,9 @@ export default function ToggleNavigation({
   items,
   value,
   onChange,
+  backgroundColor = DEFAULT_BACKGROUND_COLOR,
+  activeColor = DEFAULT_ACTIVE_COLOR,
+  inactiveColor = DEFAULT_INACTIVE_COLOR,
 }: ToggleNavigationProps) {
   const [activeIndex, setActiveIndex] = useState(value);
   const [labelWidths, setLabelWidths] = useState<LabelWidths>({});
@@ -83,6 +90,9 @@ export default function ToggleNavigation({
           activeIndex={activeIndex}
           labelWidths={labelWidths}
           onPress={handlePress}
+          backgroundColor={backgroundColor}
+          activeColor={activeColor}
+          inactiveColor={inactiveColor}
         />
       )}
     </>
@@ -94,11 +104,17 @@ function NavigationBar({
   activeIndex,
   labelWidths,
   onPress,
+  backgroundColor,
+  activeColor,
+  inactiveColor,
 }: {
   items: ToggleNavigationItem[];
   activeIndex: number;
   labelWidths: LabelWidths;
   onPress: (index: number) => void;
+  backgroundColor: string;
+  activeColor: string;
+  inactiveColor: string;
 }) {
   const activeLabelWidth = labelWidths[activeIndex] ?? 0;
   const initialBarWidth = getBarWidth(items.length, activeLabelWidth);
@@ -114,7 +130,9 @@ function NavigationBar({
   }, [activeIndex, items.length, labelWidths, barWidth]);
 
   return (
-    <Animated.View style={[styles.container, { width: barWidth }]}>
+    <Animated.View
+      style={[styles.container, { width: barWidth, backgroundColor }]}
+    >
       {items.map((item, index) => {
         const selected = activeIndex === index;
 
@@ -127,6 +145,8 @@ function NavigationBar({
               label={item.label}
               labelWidth={labelWidths[index] ?? 0}
               Icon={Icon}
+              activeColor={activeColor}
+              inactiveColor={inactiveColor}
             />
           </Pressable>
         );
@@ -140,11 +160,15 @@ function NavigationItem({
   label,
   labelWidth,
   Icon,
+  activeColor,
+  inactiveColor,
 }: {
   selected: boolean;
   label: string;
   labelWidth: number;
   Icon: React.ReactNode;
+  activeColor: string;
+  inactiveColor: string;
 }) {
   const itemWidth = useRef(
     new Animated.Value(
@@ -172,8 +196,10 @@ function NavigationItem({
     <Animated.View
       style={[
         styles.item,
-        selected ? styles.selectedItem : styles.unselectedItem,
-        { width: itemWidth },
+        {
+          width: itemWidth,
+          backgroundColor: selected ? activeColor : inactiveColor,
+        },
       ]}
     >
       <View style={styles.iconSlot}>{Icon}</View>

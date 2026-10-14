@@ -17,6 +17,12 @@ export interface ToggleNavigationProps {
   items: ToggleNavigationItem[];
   value: number;
   onChange: (value: number) => void;
+  /** Bar behind the tabs. */
+  backgroundColor?: string;
+  /** Selected tab fill. */
+  activeColor?: string;
+  /** Unselected tab fill. */
+  inactiveColor?: string;
 }
 
 export type LabelWidths = Record<number, number>;
