@@ -1,13 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-import { Pressable, Text, View } from 'react-native';
-
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
+import { Animated, Easing, Pressable, Text, View } from 'react-native';
 
 import { ANIMATION_DURATION, COLLAPSED_WIDTH } from './constants';
 import { styles } from './styles';
@@ -18,7 +11,18 @@ import type {
 } from './types';
 import { getBarWidth, getExpandedItemWidth } from './utils';
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const timingConfig = {
+  duration: ANIMATION_DURATION,
+  easing: Easing.out(Easing.cubic),
+  useNativeDriver: false,
+} as const;
+
+function animateTo(value: Animated.Value, toValue: number) {
+  Animated.timing(value, {
+    ...timingConfig,
+    toValue,
+  }).start();
+}
 
 export default function ToggleNavigation({
   items,
@@ -98,7 +102,7 @@ function NavigationBar({
 }) {
   const activeLabelWidth = labelWidths[activeIndex] ?? 0;
   const initialBarWidth = getBarWidth(items.length, activeLabelWidth);
-  const barWidth = useSharedValue(initialBarWidth);
+  const barWidth = useRef(new Animated.Value(initialBarWidth)).current;
 
   useEffect(() => {
     const targetWidth = getBarWidth(
@@ -106,32 +110,25 @@ function NavigationBar({
       labelWidths[activeIndex] ?? 0
     );
 
-    barWidth.value = withTiming(targetWidth, {
-      duration: ANIMATION_DURATION,
-      easing: Easing.out(Easing.cubic),
-    });
+    animateTo(barWidth, targetWidth);
   }, [activeIndex, items.length, labelWidths, barWidth]);
 
-  const barAnimatedStyle = useAnimatedStyle(() => ({
-    width: barWidth.value,
-  }));
-
   return (
-    <Animated.View style={[styles.container, barAnimatedStyle]}>
+    <Animated.View style={[styles.container, { width: barWidth }]}>
       {items.map((item, index) => {
         const selected = activeIndex === index;
 
         const Icon = selected ? item.selectedIcon : item.unselectedIcon;
 
         return (
-          <AnimatedPressable key={item.key} onPress={() => onPress(index)}>
+          <Pressable key={item.key} onPress={() => onPress(index)}>
             <NavigationItem
               selected={selected}
               label={item.label}
               labelWidth={labelWidths[index] ?? 0}
               Icon={Icon}
             />
-          </AnimatedPressable>
+          </Pressable>
         );
       })}
     </Animated.View>
@@ -149,55 +146,44 @@ function NavigationItem({
   labelWidth: number;
   Icon: React.ReactNode;
 }) {
-  const itemWidth = useSharedValue(
-    selected ? getExpandedItemWidth(labelWidth) : COLLAPSED_WIDTH
-  );
+  const itemWidth = useRef(
+    new Animated.Value(
+      selected ? getExpandedItemWidth(labelWidth) : COLLAPSED_WIDTH
+    )
+  ).current;
 
-  const visibleLabelWidth = useSharedValue(selected ? labelWidth : 0);
+  const visibleLabelWidth = useRef(
+    new Animated.Value(selected ? labelWidth : 0)
+  ).current;
 
-  const labelOpacity = useSharedValue(selected ? 1 : 0);
+  const labelOpacity = useRef(new Animated.Value(selected ? 1 : 0)).current;
 
   useEffect(() => {
     const targetItemWidth = selected
       ? getExpandedItemWidth(labelWidth)
       : COLLAPSED_WIDTH;
 
-    itemWidth.value = withTiming(targetItemWidth, {
-      duration: ANIMATION_DURATION,
-      easing: Easing.out(Easing.cubic),
-    });
-
-    visibleLabelWidth.value = withTiming(selected ? labelWidth : 0, {
-      duration: ANIMATION_DURATION,
-      easing: Easing.out(Easing.cubic),
-    });
-
-    labelOpacity.value = withTiming(selected ? 1 : 0, {
-      duration: ANIMATION_DURATION,
-      easing: Easing.out(Easing.cubic),
-    });
+    animateTo(itemWidth, targetItemWidth);
+    animateTo(visibleLabelWidth, selected ? labelWidth : 0);
+    animateTo(labelOpacity, selected ? 1 : 0);
   }, [selected, labelWidth, itemWidth, visibleLabelWidth, labelOpacity]);
-
-  const itemAnimatedStyle = useAnimatedStyle(() => ({
-    width: itemWidth.value,
-  }));
-
-  const labelAnimatedStyle = useAnimatedStyle(() => ({
-    width: visibleLabelWidth.value,
-    opacity: labelOpacity.value,
-  }));
 
   return (
     <Animated.View
       style={[
         styles.item,
         selected ? styles.selectedItem : styles.unselectedItem,
-        itemAnimatedStyle,
+        { width: itemWidth },
       ]}
     >
       <View style={styles.iconSlot}>{Icon}</View>
 
-      <Animated.View style={[styles.labelContainer, labelAnimatedStyle]}>
+      <Animated.View
+        style={[
+          styles.labelContainer,
+          { width: visibleLabelWidth, opacity: labelOpacity },
+        ]}
+      >
         <Text numberOfLines={1} style={styles.labelText} ellipsizeMode="clip">
           {label}
         </Text>
